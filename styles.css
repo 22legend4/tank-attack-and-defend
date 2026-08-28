@@ -229,7 +229,7 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .match-actions { gap: 3px; margin-top: 2px; }
   .match-state button { padding: 3px 6px; border-width: 1px; border-radius: 4px; font-size: 8px; }
 
-  .sacrifice-actions { top: calc(39px + env(safe-area-inset-top)); left: 3%; gap: 5px; grid-template-columns: 96px 126px 126px; }
+  .sacrifice-actions { top: calc(39px + env(safe-area-inset-top)); left: 3%; gap: 5px; grid-template-columns: 82px 105px 105px; }
   .sacrifice-actions button { min-height: 32px; padding: 3px 6px; border-radius: 6px; font-size: 12px; }
 
   .fire-button { width: 80px; height: 56px; bottom: calc(3px + env(safe-area-inset-bottom)); }
@@ -248,11 +248,11 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .special-actions [data-action="shield"] span { bottom: 59px; }
 
   .special-actions [data-action="clone"] { left: 4%; bottom: 22%; }
-  .special-actions [data-action="laser"] { left: 14%; bottom: 22%; transform: none; }
+  .special-actions [data-action="laser"] { left: 14%; bottom: 22%; transform: translate(-20px, 15px); }
   .special-actions [data-action="magic"] { left: 15%; bottom: calc(3px + env(safe-area-inset-bottom)); transform: none; }
   .special-actions [data-action="fan"] { right: 3%; bottom: 22%; }
-  .special-actions [data-action="destroy"] { right: 13%; bottom: 22%; transform: none; }
-  .special-actions [data-action="artillery"] { right: 14%; bottom: calc(3px + env(safe-area-inset-bottom)); transform: none; }
+  .special-actions [data-action="destroy"] { right: 13%; bottom: 22%; transform: translate(30px, 15px); }
+  .special-actions [data-action="artillery"] { right: 14%; bottom: calc(3px + env(safe-area-inset-bottom)); transform: translateX(30px); }
   .special-actions [data-action="shield"] { right: 2%; bottom: calc(3px + env(safe-area-inset-bottom)); }
 }
 
