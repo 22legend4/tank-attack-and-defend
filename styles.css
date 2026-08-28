@@ -245,7 +245,12 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .special-actions [data-action="magic"] span,
   .special-actions [data-action="artillery"] span { bottom: 15px; }
   .special-actions [data-action="shield"] { width: 80px; min-height: 56px; }
-  .special-actions [data-action="shield"] span { bottom: 59px; }
+  .special-actions [data-action="shield"] span {
+    top: 50%;
+    bottom: auto;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+  }
 
   .special-actions [data-action="clone"] { left: 4%; bottom: 22%; }
   .special-actions [data-action="laser"] { left: 14%; bottom: 22%; transform: translate(-20px, 15px); }
