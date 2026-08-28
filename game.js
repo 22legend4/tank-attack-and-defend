@@ -797,7 +797,7 @@ function startNetworkPolling() {
       handleRoomClosed(error.message);
       return;
     }
-    setTimeout(poll, 120);
+    setTimeout(poll, 200);
   };
   poll();
 }
