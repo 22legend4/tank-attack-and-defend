@@ -47,6 +47,21 @@ let network = null;
 let networkPolling = false;
 let lastStateSent = 0;
 
+async function enterLandscapeMode() {
+  const message = document.getElementById("orientationMessage");
+  try {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    }
+  } catch (_) {}
+
+  try {
+    if (screen.orientation?.lock) await screen.orientation.lock("landscape");
+  } catch (_) {
+    message.textContent = "Please turn your phone sideways to play.";
+  }
+}
+
 function makeSide(id) {
   return {
     id,
@@ -843,6 +858,7 @@ document.getElementById("copyRoomButton").addEventListener("click", async () => 
   } catch (_) { document.getElementById("waitingMessage").textContent = `Room ID: ${network.roomId}`; }
 });
 document.getElementById("roomIdInput").addEventListener("input", event => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
+document.getElementById("orientationButton").addEventListener("click", enterLandscapeMode);
 
 function frame(time) {
   const dt = Math.min(0.05, (time - lastTime) / 1000);
