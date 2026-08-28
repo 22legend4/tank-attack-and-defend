@@ -11,11 +11,8 @@ const ROOT = __dirname;
 const rooms = new Map();
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg" };
 
-function id(length = 6) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let value = "";
-  while (value.length < length) value += alphabet[crypto.randomInt(alphabet.length)];
-  return value;
+function id() {
+  return String(crypto.randomInt(10_000, 100_000));
 }
 
 function json(response, status, body) {
