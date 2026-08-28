@@ -1,0 +1,15 @@
+{
+  "name": "tank-attack-and-defend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A real-time strategy game where players command tanks, defend their Energy Core, and battle against AI or friends online.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

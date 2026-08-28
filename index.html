@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#101820">
+  <title>Tank Attack and Defend</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <section id="lobby" class="lobby" aria-label="Game lobby">
+    <div class="lobby-panel">
+      <h1><span>Tank</span><span>Attack and Defend</span></h1>
+      <div id="lobbyHome" class="lobby-view">
+        <button id="playAiButton" class="menu-button">Play vs AI</button>
+        <button id="showCreateButton" class="menu-button">Create Room</button>
+        <button id="showJoinButton" class="menu-button">Join Room</button>
+        <button id="showHowToPlayButton" class="menu-button">How to Play > </button>
+      </div>
+      <div id="createView" class="lobby-view hidden">
+        <label class="private-option"><input id="privateRoomInput" type="checkbox"> Private room</label>
+        <button id="createRoomButton" class="menu-button">Create Room</button>
+        <button class="back-button" data-lobby-back>Back</button>
+      </div>
+      <div id="joinView" class="lobby-view hidden">
+        <label for="roomIdInput">Room ID</label>
+        <input id="roomIdInput" type="text" maxlength="6" autocomplete="off" placeholder="Leave blank for a random room">
+        <button id="joinRoomButton" class="menu-button">Join Room</button>
+        <button class="back-button" data-lobby-back>Back</button>
+      </div>
+      <div id="waitingView" class="lobby-view hidden">
+        <p>Room ID</p>
+        <strong id="roomIdDisplay">------</strong>
+        <p id="waitingMessage">Waiting for another player...</p>
+        <button id="copyRoomButton" class="menu-button">Copy Room ID</button>
+        <button id="cancelRoomButton" class="back-button">Cancel</button>
+      </div>
+      <div id="howToPlayView" class="lobby-view how-to-play-view hidden">
+        <h2>How to Play</h2>
+        <div class="guide-table-wrap">
+          <table class="guide-table">
+            <thead><tr><th>Item</th><th>Effect</th><th>Quantity</th></tr></thead>
+            <tbody>
+              <tr><th><span class="guide-item"><img src="assets/yellow bullet.png" alt=""><span>Standard Bullet</span></span></th><td>Bullets cancel each other out when they collide.</td><td>400</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/yellow-dan-phan-3.png" alt=""><span>Triple-Split Bullet</span></span></th><td>When the bullet reaches the middle of the battlefield, it splits into 3 bullets.</td><td>10</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/Lazer Button.png" alt=""><span>Laser Bullet</span></span></th><td>Destroys Standard Bullets in its path. Two Laser Bullets pass through each other.</td><td>2</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/ho-den-ngang.png" alt=""><span>Black Hole</span></span></th><td>Absorbs all types of bullets in its path. Two Black Holes cancel each other out when they collide.</td><td>2</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/dan-phao.png" alt=""><span>Artillery Shell</span></span></th><td>Fires high into the air, avoiding other types of bullets. It can only be blocked by a Shield or the Reverse.</td><td>3</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/destroy.png" alt=""><span>Destroy</span></span></th><td>Destroys every bullet currently on the battlefield, including both enemy bullets and your own bullets.</td><td>1</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/phan-nguoc.png" alt=""><span>Reverse</span></span></th><td>Sends the nearest bullet back toward the opponent.</td><td>4</td></tr>
+              <tr><th><span class="guide-item"><img src="assets/khien.png" alt=""><span>Shield</span></span></th><td>Activates for 2 seconds and blocks all types of bullets.</td><td>5</td></tr>
+              <tr><th><span class="guide-sacrifice-button">+ AMMO</span></th><td>Exchange <strong>1 HP</strong> for <strong>5 bullets</strong>.</td><td>—</td></tr>
+              <tr><th><span class="guide-sacrifice-button">− SOLDIER</span></th><td>Exchange <strong>1 HP</strong> to destroy <strong>1 enemy soldier</strong>.</td><td>—</td></tr>
+              <tr><th><span class="guide-sacrifice-button">− CORE HP</span></th><td>Exchange <strong>2 HP</strong> to deal <strong>1 damage</strong> to the opponent.</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="back-button" data-lobby-back>Back</button>
+      </div>
+      <p id="lobbyError" class="lobby-error" role="alert"></p>
+    </div>
+  </section>
+  <main id="app">
+    <section class="top-bar">
+      <div class="status player-status">
+        <div id="playerHealth" class="health" aria-label="Yellow core health"></div>
+        <span id="playerAmmo" class="ammo-count">400</span>
+      </div>
+      <div class="match-state">
+        <span id="message">Tank Attack and Defend</span>
+        <button id="restartButton" class="hidden">PLAY AGAIN</button>
+      </div>
+      <div class="status enemy-status">
+        <span id="enemyAmmo" class="ammo-count">400</span>
+        <div id="enemyHealth" class="health" aria-label="Green core health"></div>
+      </div>
+    </section>
+
+    <section id="arenaWrap">
+      <canvas id="arena" width="1280" height="560" aria-label="Tank battlefield"></canvas>
+      <div class="sacrifice-actions">
+        <button id="tradeAmmoButton"><span>+ AMMO</span><small>−1 HP / +5 ammo</small></button>
+        <button id="destroySoldierButton"><span>− SOLDIER</span><small>−1 HP</small></button>
+        <button id="damageCoreButton"><span>− CORE HP</span><small>−2 HP</small></button>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="primary-actions">
+        <button id="normalButton" class="fire-button">
+          <img src="assets/fire.png" alt="Fire">
+        </button>
+        <button id="summonButton" class="summon-button">
+          <img id="summonIcon" src="assets/yellow soldier.png" alt="">
+          <span>Summon</span><small>−10 ammo</small>
+        </button>
+        <button id="reviveButton" class="revive-button">
+          <img id="reviveIcon" src="assets/yellow tank.png" alt="">
+          <span>Revive</span><small>−4 core HP</small>
+        </button>
+      </div>
+
+      <div id="specialActions" class="special-actions">
+        <button data-action="clone"><img src="assets/yellow-dan-phan-3.png" alt=""><span>Triple Shot</span><b id="cloneCount">10</b></button>
+        <button data-action="laser"><img src="assets/Lazer Button.png" alt=""><span>Laser</span><b id="laserCount">2</b></button>
+        <button data-action="magic"><img src="assets/ho-den-ngang.png" alt=""><span>Black Hole</span><b id="magicCount">2</b></button>
+        <button data-action="artillery"><img src="assets/dan-phao.png" alt=""><span>Artillery</span><b id="artilleryCount">3</b></button>
+        <button data-action="fan"><img src="assets/phan-nguoc.png" alt=""><span>Reflect</span><b id="fanCount">4</b></button>
+        <button data-action="destroy"><img src="assets/destroy.png" alt=""><span>Destroy</span><b id="destroyCount">1</b></button>
+        <button data-action="shield"><img src="assets/khien.png" alt=""><span>Shield</span><b id="shieldCount">5</b></button>
+      </div>
+    </section>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
