@@ -55,7 +55,7 @@ async function enterLandscapeMode() {
 
   if (isIOS) {
     message.textContent = "Turn your iPhone sideways to play.";
-    button.textContent = "TURN YOUR IPHONE SIDEWAYS";
+    button.classList.add("hidden");
     return;
   }
   try {
@@ -871,7 +871,7 @@ document.getElementById("orientationButton").addEventListener("click", enterLand
 
 if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
   document.getElementById("orientationMessage").textContent = "Turn your iPhone sideways to play.";
-  document.getElementById("orientationButton").textContent = "TURN YOUR IPHONE SIDEWAYS";
+  document.getElementById("orientationButton").classList.add("hidden");
 }
 
 function frame(time) {
