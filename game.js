@@ -106,8 +106,12 @@ function resetGame({ preserveBackground = false } = {}) {
     aiOpeningShots: Array.from({ length: openingShotCount }, () => 0.12 + Math.random() * 0.78).sort((a, b) => a - b)
   };
   nextId = 1;
-  document.getElementById("restartButton").classList.add("hidden");
+  if (network) {
+    network.rematchReady = false;
+    network.opponentRematchReady = false;
+  }
   setMessage("Tank Attack and Defend");
+  refreshMatchControls();
   refreshUI();
 }
 
@@ -128,6 +132,17 @@ function setMessage(text, ms = 0) {
   }
 }
 setMessage.stamp = 0;
+
+function refreshMatchControls() {
+  const inMatch = playMode !== "menu";
+  const over = Boolean(game?.over);
+  const restartButton = document.getElementById("restartButton");
+  restartButton.classList.toggle("hidden", !inMatch || !over);
+  restartButton.disabled = Boolean(network?.rematchReady);
+  restartButton.textContent = network?.rematchReady ? "WAITING FOR OPPONENT" : "PLAY AGAIN";
+  document.getElementById("surrenderButton").classList.toggle("hidden", !inMatch || over);
+  document.getElementById("homeButton").classList.toggle("hidden", !inMatch);
+}
 
 function addProjectile(owner, type, lane = 1, fromSoldier = false) {
   const side = game[owner];
@@ -431,13 +446,22 @@ function damageCore(side, amount) {
 
 function checkEnd() {
   if (game.player.coreHp > 0 && game.enemy.coreHp > 0) return;
+  if (game.over) return;
   game.over = true;
   let result = "DRAW — BOTH CORES DESTROYED";
   if (game[localSide].coreHp <= 0 && game[other(localSide)].coreHp > 0) result = "DEFEAT — YOUR CORE WAS DESTROYED";
   if (game[other(localSide)].coreHp <= 0 && game[localSide].coreHp > 0) result = "VICTORY — ENEMY CORE DESTROYED";
   game.result = result;
   setMessage(result);
-  document.getElementById("restartButton").classList.remove("hidden");
+  refreshMatchControls();
+  if (playMode === "online-host" && network?.connected) sendRoomMessage("state", game);
+}
+
+function surrender(side) {
+  if (game.over) return;
+  game[side].coreHp = 0;
+  checkEnd();
+  refreshUI();
 }
 
 function addEffect(x, y, color, text, life) { game.effects.push({ x, y, color, text, life, maxLife: life }); }
@@ -711,6 +735,7 @@ function executeAction(side, action) {
   else if (action.kind === "revive") revive(side);
   else if (action.kind === "sacrifice") sacrifice(side, action.value);
   else if (action.kind === "special") fireSpecial(side, action.value);
+  else if (action.kind === "surrender") surrender(side);
   else if (action.kind === "restart" && playMode !== "online-guest") resetGame({ preserveBackground: true });
 }
 
@@ -743,8 +768,43 @@ document.getElementById("reviveButton").addEventListener("click", () => control(
 document.getElementById("tradeAmmoButton").addEventListener("click", () => control({ kind: "sacrifice", value: "ammo" }));
 document.getElementById("destroySoldierButton").addEventListener("click", () => control({ kind: "sacrifice", value: "soldier" }));
 document.getElementById("damageCoreButton").addEventListener("click", () => control({ kind: "sacrifice", value: "core" }));
-document.getElementById("restartButton").addEventListener("click", () => control({ kind: "restart" }));
 document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => control({ kind: "special", value: button.dataset.action })));
+
+async function requestRematch() {
+  if (!game.over) return;
+  if (playMode === "ai") {
+    resetGame({ preserveBackground: true });
+    return;
+  }
+  if (!network || network.rematchReady) return;
+  network.rematchReady = true;
+  refreshMatchControls();
+  setMessage("WAITING FOR OPPONENT...");
+  await sendRoomMessage("rematch-ready", {});
+  startOnlineRematchIfReady();
+}
+
+function startOnlineRematchIfReady() {
+  if (playMode !== "online-host" || !network?.rematchReady || !network.opponentRematchReady) return;
+  resetGame({ preserveBackground: true });
+  sendRoomMessage("rematch-start", {});
+  sendRoomMessage("state", game);
+}
+
+function backToHome() {
+  if (playMode === "online-host" || playMode === "online-guest") {
+    leaveRoom();
+    return;
+  }
+  playMode = "menu";
+  refreshMatchControls();
+  document.getElementById("lobby").classList.remove("hidden");
+  showLobbyView("lobbyHome");
+}
+
+document.getElementById("restartButton").addEventListener("click", requestRematch);
+document.getElementById("surrenderButton").addEventListener("click", () => control({ kind: "surrender" }));
+document.getElementById("homeButton").addEventListener("click", backToHome);
 
 function showLobbyView(viewId) {
   document.querySelectorAll(".lobby-view").forEach(view => view.classList.add("hidden"));
@@ -838,6 +898,15 @@ function startNetworkPolling() {
       for (const message of data.messages) {
         if (message.sender === network.clientId) continue;
         if (playMode === "online-host" && message.type === "action") executeAction(other(localSide), message.payload);
+        if (message.type === "rematch-ready") {
+          network.opponentRematchReady = true;
+          if (network.rematchReady) setMessage("OPPONENT IS READY");
+          startOnlineRematchIfReady();
+        }
+        if (playMode === "online-guest" && message.type === "rematch-start") {
+          network.rematchReady = false;
+          network.opponentRematchReady = false;
+        }
         if (playMode === "online-guest" && message.type === "state") {
           applyGuestState(message.payload);
           document.getElementById("lobby").classList.add("hidden");
@@ -846,8 +915,8 @@ function startNetworkPolling() {
             if (game[localSide].coreHp <= 0 && game[other(localSide)].coreHp > 0) result = "DEFEAT — YOUR CORE WAS DESTROYED";
             if (game[other(localSide)].coreHp <= 0 && game[localSide].coreHp > 0) result = "VICTORY — ENEMY CORE DESTROYED";
             setMessage(result);
-            document.getElementById("restartButton").classList.remove("hidden");
           }
+          refreshMatchControls();
           refreshUI();
         }
       }
@@ -864,6 +933,7 @@ function handleRoomClosed(message) {
   network = null;
   networkPolling = false;
   playMode = "menu";
+  refreshMatchControls();
   document.getElementById("lobby").classList.remove("hidden");
   showLobbyView("lobbyHome");
   lobbyError(message || "The room was closed.");
@@ -877,6 +947,8 @@ async function leaveRoom() {
     try { await apiRequest("/api/leave", { method: "POST", body: { roomId: current.roomId, clientId: current.clientId } }); } catch (_) {}
   }
   playMode = "menu";
+  refreshMatchControls();
+  document.getElementById("lobby").classList.remove("hidden");
   showLobbyView("lobbyHome");
 }
 

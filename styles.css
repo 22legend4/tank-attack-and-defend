@@ -94,6 +94,9 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
 .ammo-count { min-width: 72px; padding-top: 5px; font-size: clamp(25px, 3vw, 38px); line-height: 1; font-weight: 900; text-align: center; text-shadow: 0 3px 3px #000; }
 .match-state { padding-top: 8px; font-size: clamp(11px, 1.25vw, 17px); font-weight: 900; text-align: center; text-shadow: 0 2px 3px #000; }
 .match-state button { pointer-events: auto; padding: 6px 14px; border: 2px solid #fff; border-radius: 7px; background: #182b35; }
+.match-actions { display: flex; justify-content: center; gap: 6px; margin-top: 5px; }
+#surrenderButton { border-color: #ff6b6b; background: #4a171b; }
+#homeButton { border-color: #7acbe6; }
 
 .sacrifice-actions {
   position: absolute; z-index: 6; top: 9.2%; left: 6%;
@@ -223,6 +226,8 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .health img { height: 20px; }
   .ammo-count { min-width: 42px; padding-top: 1px; font-size: 20px; }
   .match-state { padding-top: 2px; font-size: 10px; }
+  .match-actions { gap: 3px; margin-top: 2px; }
+  .match-state button { padding: 3px 6px; border-width: 1px; border-radius: 4px; font-size: 8px; }
 
   .sacrifice-actions { top: calc(39px + env(safe-area-inset-top)); left: 3%; gap: 5px; grid-template-columns: 96px 126px 126px; }
   .sacrifice-actions button { min-height: 32px; padding: 3px 6px; border-radius: 6px; font-size: 12px; }
