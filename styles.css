@@ -217,30 +217,38 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .guide-item img { flex-basis: 34px; width: 34px; height: 34px; }
   .guide-sacrifice-button { width: 118px; min-height: 30px; padding: 2px 6px; font-size: 11px; }
 
-  .top-bar { inset: 2px 3% auto; gap: 8px; }
+  .top-bar { inset: calc(7px + env(safe-area-inset-top)) 3% auto; gap: 8px; }
   .status { gap: 5px; }
   .health { width: min(250px, 32vw); }
   .health img { height: 20px; }
   .ammo-count { min-width: 42px; padding-top: 1px; font-size: 20px; }
   .match-state { padding-top: 2px; font-size: 10px; }
 
-  .sacrifice-actions { top: 7%; left: 3%; gap: 5px; grid-template-columns: 96px 126px 126px; }
+  .sacrifice-actions { top: calc(39px + env(safe-area-inset-top)); left: 3%; gap: 5px; grid-template-columns: 96px 126px 126px; }
   .sacrifice-actions button { min-height: 32px; padding: 3px 6px; border-radius: 6px; font-size: 12px; }
 
-  .fire-button { width: 88px; height: 62px; bottom: 1%; }
-  .summon-button, .revive-button { bottom: 1%; min-width: 82px; font-size: 19px; }
+  .fire-button { width: 80px; height: 56px; bottom: calc(3px + env(safe-area-inset-bottom)); }
+  .summon-button, .revive-button { bottom: calc(3px + env(safe-area-inset-bottom)); min-width: 82px; font-size: 18px; }
   .summon-button img, .revive-button img { width: 58px; height: 35px; margin-bottom: 0; }
   .revive-button img { width: 72px; }
   .summon-button small, .revive-button small { font-size: 9px; }
 
-  .special-actions button { width: 68px; min-height: 54px; font-size: 11px; }
-  .special-actions button img { width: 50px; height: 50px; }
-  .special-actions button span { bottom: 54px; }
+  .special-actions button { width: 62px; min-height: 48px; font-size: 10px; }
+  .special-actions button img { width: 44px; height: 44px; }
+  .special-actions button span { bottom: 48px; }
   .special-actions button b { right: 0; bottom: 1px; min-width: 17px; height: 17px; font-size: 9px; }
   .special-actions [data-action="magic"] span,
-  .special-actions [data-action="artillery"] span { bottom: 17px; }
-  .special-actions [data-action="shield"] { width: 88px; min-height: 62px; }
-  .special-actions [data-action="shield"] span { bottom: 65px; }
+  .special-actions [data-action="artillery"] span { bottom: 15px; }
+  .special-actions [data-action="shield"] { width: 80px; min-height: 56px; }
+  .special-actions [data-action="shield"] span { bottom: 59px; }
+
+  .special-actions [data-action="clone"] { left: 4%; bottom: 22%; }
+  .special-actions [data-action="laser"] { left: 14%; bottom: 22%; transform: none; }
+  .special-actions [data-action="magic"] { left: 15%; bottom: calc(3px + env(safe-area-inset-bottom)); transform: none; }
+  .special-actions [data-action="fan"] { right: 3%; bottom: 22%; }
+  .special-actions [data-action="destroy"] { right: 13%; bottom: 22%; transform: none; }
+  .special-actions [data-action="artillery"] { right: 14%; bottom: calc(3px + env(safe-area-inset-bottom)); transform: none; }
+  .special-actions [data-action="shield"] { right: 2%; bottom: calc(3px + env(safe-area-inset-bottom)); }
 }
 
 @media (orientation: portrait) and (max-width: 900px) {

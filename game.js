@@ -49,6 +49,15 @@ let lastStateSent = 0;
 
 async function enterLandscapeMode() {
   const message = document.getElementById("orientationMessage");
+  const button = document.getElementById("orientationButton");
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  if (isIOS) {
+    message.textContent = "Turn your iPhone sideways to play.";
+    button.textContent = "TURN YOUR IPHONE SIDEWAYS";
+    return;
+  }
   try {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       await document.documentElement.requestFullscreen({ navigationUI: "hide" });
@@ -859,6 +868,11 @@ document.getElementById("copyRoomButton").addEventListener("click", async () => 
 });
 document.getElementById("roomIdInput").addEventListener("input", event => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
 document.getElementById("orientationButton").addEventListener("click", enterLandscapeMode);
+
+if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+  document.getElementById("orientationMessage").textContent = "Turn your iPhone sideways to play.";
+  document.getElementById("orientationButton").textContent = "TURN YOUR IPHONE SIDEWAYS";
+}
 
 function frame(time) {
   const dt = Math.min(0.05, (time - lastTime) / 1000);
