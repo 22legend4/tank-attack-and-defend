@@ -110,11 +110,16 @@ async function api(request, response, url) {
 }
 
 function staticFile(request, response, url) {
-  const relative = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
-  const file = path.resolve(ROOT, `.${relative}`);
-  if (!file.startsWith(ROOT + path.sep)) return response.writeHead(403).end("Forbidden");
+  const requestedPath = decodeURIComponent(url.pathname === "/" ? "index.html" : url.pathname);
+  const relative = requestedPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const file = path.join(ROOT, relative);
+  const fromRoot = path.relative(ROOT, file);
+  if (fromRoot.startsWith("..") || path.isAbsolute(fromRoot)) return response.writeHead(403).end("Forbidden");
   fs.readFile(file, (error, data) => {
-    if (error) return response.writeHead(404).end("Not found");
+    if (error) {
+      console.error(`Static file not found: ${file}`, error.code);
+      return response.writeHead(404).end("Not found");
+    }
     response.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream", "Cache-Control": "no-cache" });
     response.end(data);
   });
@@ -135,4 +140,7 @@ setInterval(() => {
   for (const [roomId, room] of rooms) if (room.updatedAt < cutoff) rooms.delete(roomId);
 }, 60_000).unref();
 
-server.listen(PORT, HOST, () => console.log(`Tank Attack and Defend: http://localhost:${PORT}`));
+server.listen(PORT, HOST, () => {
+  console.log(`Tank Attack and Defend: http://localhost:${PORT}`);
+  console.log(`Static root: ${ROOT}; index.html: ${fs.existsSync(path.join(ROOT, "index.html")) ? "found" : "missing"}`);
+});
