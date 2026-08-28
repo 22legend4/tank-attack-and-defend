@@ -45,6 +45,23 @@ function roomInfo(room) {
   return { roomId: room.id, private: room.private, connected: room.players.length === 2, players: room.players.length };
 }
 
+function publish(room, sender, type, payload = {}) {
+  room.sequence++;
+  const message = { sequence: room.sequence, sender, type, payload };
+  room.messages.push(message);
+  if (room.messages.length > 250) room.messages.splice(0, room.messages.length - 250);
+  const event = `data: ${JSON.stringify(message)}\n\n`;
+  for (const response of room.streams.values()) response.write(event);
+  return message;
+}
+
+function closeRoom(room, reason = "Room closed.") {
+  publish(room, "server", "room-closed", { reason });
+  for (const response of room.streams.values()) response.end();
+  room.streams.clear();
+  rooms.delete(room.id);
+}
+
 async function api(request, response, url) {
   if (request.method === "POST" && url.pathname === "/api/create") {
     const body = await readJson(request);
@@ -53,7 +70,7 @@ async function api(request, response, url) {
     const clientId = crypto.randomUUID();
     const hostSide = Math.random() < 0.5 ? "player" : "enemy";
     const now = Date.now();
-    const room = { id: roomId, private: Boolean(body.private), players: [{ clientId, side: hostSide }], messages: [], sequence: 0, createdAt: now, updatedAt: now };
+    const room = { id: roomId, private: Boolean(body.private), players: [{ clientId, side: hostSide }], messages: [], streams: new Map(), sequence: 0, createdAt: now, updatedAt: now };
     rooms.set(roomId, room);
     return json(response, 200, { ...roomInfo(room), clientId, side: hostSide });
   }
@@ -68,18 +85,37 @@ async function api(request, response, url) {
     const side = room.players[0].side === "player" ? "enemy" : "player";
     room.players.push({ clientId, side });
     room.updatedAt = Date.now();
-    room.sequence++;
-    room.messages.push({ sequence: room.sequence, sender: "server", type: "joined", payload: {} });
+    publish(room, "server", "joined");
     return json(response, 200, { ...roomInfo(room), clientId, side });
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/events") {
+    const clientId = url.searchParams.get("clientId");
+    const room = roomFor(url.searchParams.get("roomId"), clientId);
+    if (!room) return json(response, 404, { error: "Room closed." });
+    response.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no"
+    });
+    response.write(": connected\n\n");
+    room.streams.set(clientId, response);
+    const since = Number(url.searchParams.get("since") || 0);
+    for (const message of room.messages) {
+      if (message.sequence > since) response.write(`data: ${JSON.stringify(message)}\n\n`);
+    }
+    request.on("close", () => {
+      if (room.streams.get(clientId) === response) room.streams.delete(clientId);
+    });
+    return;
   }
 
   if (request.method === "POST" && url.pathname === "/api/message") {
     const body = await readJson(request);
     const room = roomFor(body.roomId, body.clientId);
     if (!room) return json(response, 404, { error: "Room closed." });
-    room.sequence++;
-    room.messages.push({ sequence: room.sequence, sender: body.clientId, type: body.type, payload: body.payload });
-    if (room.messages.length > 250) room.messages.splice(0, room.messages.length - 250);
+    publish(room, body.clientId, body.type, body.payload);
     return json(response, 200, { sequence: room.sequence });
   }
 
@@ -93,7 +129,7 @@ async function api(request, response, url) {
   if (request.method === "POST" && url.pathname === "/api/leave") {
     const body = await readJson(request);
     const room = roomFor(body.roomId, body.clientId);
-    if (room) rooms.delete(room.id);
+    if (room) closeRoom(room, "The other player returned to the home screen.");
     return json(response, 200, { ok: true });
   }
 
@@ -102,7 +138,7 @@ async function api(request, response, url) {
     const room = roomFor(body.roomId, body.clientId);
     if (!room) return json(response, 404, { error: "Room closed." });
     if (room.private || room.players.length !== 1) return json(response, 200, { fallback: false, connected: room.players.length === 2 });
-    rooms.delete(room.id);
+    closeRoom(room, "Room changed to an AI match.");
     return json(response, 200, { fallback: true });
   }
 
@@ -137,8 +173,14 @@ const server = http.createServer(async (request, response) => {
 
 setInterval(() => {
   const cutoff = Date.now() - 30 * 60 * 1000;
-  for (const [roomId, room] of rooms) if (room.updatedAt < cutoff) rooms.delete(roomId);
+  for (const room of rooms.values()) if (room.updatedAt < cutoff) closeRoom(room, "Room expired.");
 }, 60_000).unref();
+
+setInterval(() => {
+  for (const room of rooms.values()) {
+    for (const response of room.streams.values()) response.write(": keepalive\n\n");
+  }
+}, 15_000).unref();
 
 server.listen(PORT, HOST, () => {
   console.log(`Tank Attack and Defend: http://localhost:${PORT}`);

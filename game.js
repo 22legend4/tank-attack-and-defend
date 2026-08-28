@@ -45,6 +45,7 @@ let playMode = "menu";
 let localSide = "player";
 let network = null;
 let networkPolling = false;
+let networkStream = null;
 let lastStateSent = 0;
 
 async function enterLandscapeMode() {
@@ -835,7 +836,7 @@ async function createOnlineRoom() {
     document.getElementById("roomIdDisplay").textContent = data.roomId;
     document.getElementById("waitingMessage").textContent = data.private ? "Private room — share this ID with a friend." : "Public room — waiting for another player...";
     showLobbyView("waitingView");
-    startNetworkPolling();
+    startNetworkSync();
     if (!data.private) {
       const waitingRoomId = data.roomId;
       const waitingClientId = data.clientId;
@@ -849,8 +850,8 @@ async function tryPublicAiFallback(roomId, clientId) {
   try {
     const result = await apiRequest("/api/fallback-ai", { method: "POST", body: { roomId, clientId } });
     if (!result.fallback || !network || network.roomId !== roomId) return;
+    stopNetworkSync();
     network = null;
-    networkPolling = false;
     playMode = "ai";
     resetGame();
     document.getElementById("lobby").classList.add("hidden");
@@ -869,7 +870,7 @@ async function joinOnlineRoom() {
     document.getElementById("roomIdDisplay").textContent = data.roomId;
     document.getElementById("waitingMessage").textContent = "Connecting to the match...";
     showLobbyView("waitingView");
-    startNetworkPolling();
+    startNetworkSync();
   } catch (error) { lobbyError(error.message); }
 }
 
@@ -888,38 +889,14 @@ function startNetworkPolling() {
     try {
       const query = new URLSearchParams({ roomId: network.roomId, clientId: network.clientId, since: String(network.sequence) });
       const data = await apiRequest(`/api/poll?${query}`);
-      network.sequence = data.sequence;
       network.connected = data.connected;
       if (playMode === "online-host" && data.connected && !document.getElementById("lobby").classList.contains("hidden")) {
         resetGame();
         document.getElementById("lobby").classList.add("hidden");
         sendRoomMessage("state", game);
       }
-      for (const message of data.messages) {
-        if (message.sender === network.clientId) continue;
-        if (playMode === "online-host" && message.type === "action") executeAction(other(localSide), message.payload);
-        if (message.type === "rematch-ready") {
-          network.opponentRematchReady = true;
-          if (network.rematchReady) setMessage("OPPONENT IS READY");
-          startOnlineRematchIfReady();
-        }
-        if (playMode === "online-guest" && message.type === "rematch-start") {
-          network.rematchReady = false;
-          network.opponentRematchReady = false;
-        }
-        if (playMode === "online-guest" && message.type === "state") {
-          applyGuestState(message.payload);
-          document.getElementById("lobby").classList.add("hidden");
-          if (game.over) {
-            let result = "DRAW — BOTH CORES DESTROYED";
-            if (game[localSide].coreHp <= 0 && game[other(localSide)].coreHp > 0) result = "DEFEAT — YOUR CORE WAS DESTROYED";
-            if (game[other(localSide)].coreHp <= 0 && game[localSide].coreHp > 0) result = "VICTORY — ENEMY CORE DESTROYED";
-            setMessage(result);
-          }
-          refreshMatchControls();
-          refreshUI();
-        }
-      }
+      for (const message of data.messages) handleNetworkMessage(message);
+      network.sequence = Math.max(network.sequence, data.sequence);
     } catch (error) {
       handleRoomClosed(error.message);
       return;
@@ -929,9 +906,70 @@ function startNetworkPolling() {
   poll();
 }
 
-function handleRoomClosed(message) {
-  network = null;
+function handleNetworkMessage(message) {
+  if (!network) return;
+  network.sequence = Math.max(network.sequence, message.sequence || 0);
+  if (message.type === "room-closed") {
+    handleRoomClosed(message.payload?.reason);
+    return;
+  }
+  if (message.sender === network.clientId) return;
+  if (playMode === "online-host" && message.type === "joined" && !document.getElementById("lobby").classList.contains("hidden")) {
+    network.connected = true;
+    resetGame();
+    document.getElementById("lobby").classList.add("hidden");
+    sendRoomMessage("state", game);
+  }
+  if (playMode === "online-host" && message.type === "action") executeAction(other(localSide), message.payload);
+  if (message.type === "rematch-ready") {
+    network.opponentRematchReady = true;
+    if (network.rematchReady) setMessage("OPPONENT IS READY");
+    startOnlineRematchIfReady();
+  }
+  if (playMode === "online-guest" && message.type === "rematch-start") {
+    network.rematchReady = false;
+    network.opponentRematchReady = false;
+  }
+  if (playMode === "online-guest" && message.type === "state") {
+    applyGuestState(message.payload);
+    document.getElementById("lobby").classList.add("hidden");
+    if (game.over) {
+      let result = "DRAW — BOTH CORES DESTROYED";
+      if (game[localSide].coreHp <= 0 && game[other(localSide)].coreHp > 0) result = "DEFEAT — YOUR CORE WAS DESTROYED";
+      if (game[other(localSide)].coreHp <= 0 && game[localSide].coreHp > 0) result = "VICTORY — ENEMY CORE DESTROYED";
+      setMessage(result);
+    }
+    refreshMatchControls();
+    refreshUI();
+  }
+}
+
+function startNetworkSync() {
+  if (!("EventSource" in window)) {
+    startNetworkPolling();
+    return;
+  }
+  const query = new URLSearchParams({ roomId: network.roomId, clientId: network.clientId, since: String(network.sequence) });
+  networkStream = new EventSource(`/api/events?${query}`);
+  networkStream.onmessage = event => {
+    try { handleNetworkMessage(JSON.parse(event.data)); } catch (_) {}
+  };
+  networkStream.onerror = () => {
+    networkStream?.close();
+    networkStream = null;
+    if (network) startNetworkPolling();
+  };
+}
+
+function stopNetworkSync() {
+  networkStream?.close();
+  networkStream = null;
   networkPolling = false;
+}
+
+function handleRoomClosed(message) {
+  stopNetworkSync();
+  network = null;
   playMode = "menu";
   refreshMatchControls();
   document.getElementById("lobby").classList.remove("hidden");
@@ -941,8 +979,8 @@ function handleRoomClosed(message) {
 
 async function leaveRoom() {
   const current = network;
+  stopNetworkSync();
   network = null;
-  networkPolling = false;
   if (current) {
     try { await apiRequest("/api/leave", { method: "POST", body: { roomId: current.roomId, clientId: current.clientId } }); } catch (_) {}
   }
