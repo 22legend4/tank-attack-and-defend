@@ -261,8 +261,25 @@ function revive(side) {
   refreshUI();
 }
 
+function updateGuest(dt) {
+  game.now += dt;
+  for (const projectile of game.projectiles) {
+    if (!projectile.alive) continue;
+    projectile.previousX = projectile.x;
+    if (projectile.type === "artillery") {
+      projectile.artilleryElapsed += dt;
+      const t = Math.min(1, projectile.artilleryElapsed / projectile.artilleryDuration);
+      projectile.x = projectile.startX + (projectile.targetX - projectile.startX) * t;
+      projectile.y = LANES[1] - Math.sin(Math.PI * t) * 210;
+    } else projectile.x += projectile.dir * projectile.speed * dt;
+  }
+  game.effects = game.effects.filter(effect => (effect.life -= dt) > 0);
+  refreshUI();
+}
+
 function update(dt) {
-  if (game.over || playMode === "menu" || playMode === "online-guest") return;
+  if (game.over || playMode === "menu") return;
+  if (playMode === "online-guest") return updateGuest(dt);
   game.now += dt;
   for (const sideName of ["player", "enemy"]) {
     const side = game[sideName];
@@ -703,6 +720,23 @@ function control(action) {
   else executeAction(localSide, action);
 }
 
+function applyGuestState(snapshot) {
+  const localNow = game?.now || 0;
+  const localProjectiles = new Map((game?.projectiles || []).map(projectile => [projectile.id, projectile]));
+
+  for (const projectile of snapshot.projectiles || []) {
+    const local = localProjectiles.get(projectile.id);
+    if (!local || local.owner !== projectile.owner || local.type !== projectile.type) continue;
+    projectile.x = local.x;
+    projectile.y = local.y;
+    projectile.previousX = local.previousX;
+    if (projectile.type === "artillery") projectile.artilleryElapsed = local.artilleryElapsed;
+  }
+
+  snapshot.now = Math.max(snapshot.now || 0, localNow);
+  game = snapshot;
+}
+
 document.getElementById("normalButton").addEventListener("click", () => control({ kind: "normal" }));
 document.getElementById("summonButton").addEventListener("click", () => control({ kind: "summon" }));
 document.getElementById("reviveButton").addEventListener("click", () => control({ kind: "revive" }));
@@ -805,7 +839,7 @@ function startNetworkPolling() {
         if (message.sender === network.clientId) continue;
         if (playMode === "online-host" && message.type === "action") executeAction(other(localSide), message.payload);
         if (playMode === "online-guest" && message.type === "state") {
-          game = message.payload;
+          applyGuestState(message.payload);
           document.getElementById("lobby").classList.add("hidden");
           if (game.over) {
             let result = "DRAW — BOTH CORES DESTROYED";
