@@ -16,7 +16,7 @@ function id() {
 }
 
 function json(response, status, body) {
-  response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+  response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" });
   response.end(JSON.stringify(body));
 }
 
@@ -63,6 +63,15 @@ function closeRoom(room, reason = "Room closed.") {
 }
 
 async function api(request, response, url) {
+  if (request.method === "OPTIONS") {
+    response.writeHead(204, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    });
+    return response.end();
+  }
+
   if (request.method === "POST" && url.pathname === "/api/create") {
     const body = await readJson(request);
     let roomId;
@@ -97,7 +106,8 @@ async function api(request, response, url) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       "Connection": "keep-alive",
-      "X-Accel-Buffering": "no"
+      "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": "*"
     });
     response.write(": connected\n\n");
     room.streams.set(clientId, response);

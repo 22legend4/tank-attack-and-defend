@@ -815,8 +815,10 @@ function showLobbyView(viewId) {
 
 function lobbyError(message) { document.getElementById("lobbyError").textContent = message; }
 
+const API_BASE = window.Capacitor?.isNativePlatform?.() ? "https://tankad.onrender.com" : "";
+
 async function apiRequest(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method: options.method || "GET",
     headers: options.body ? { "Content-Type": "application/json" } : undefined,
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -961,7 +963,7 @@ function startNetworkSync() {
     return;
   }
   const query = new URLSearchParams({ roomId: network.roomId, clientId: network.clientId, since: String(network.sequence) });
-  networkStream = new EventSource(`/api/events?${query}`);
+  networkStream = new EventSource(`${API_BASE}/api/events?${query}`);
   networkStream.onmessage = event => {
     try { handleNetworkMessage(JSON.parse(event.data)); } catch (_) {}
   };

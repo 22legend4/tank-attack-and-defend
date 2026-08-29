@@ -1,0 +1,8 @@
+{
+  "appId": "com.tankad.game",
+  "appName": "Tank Attack and Defend",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}

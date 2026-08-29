@@ -12,6 +12,13 @@ node server.js
 
 Sau đó mở `http://localhost:4173`. Người chơi khác trong cùng mạng có thể mở địa chỉ IP của máy chủ với cổng `4173`.
 
+## Android / Google Play
+
+- App ID: `com.tankad.game`
+- Build web assets và đồng bộ Android: `npm run android:sync`
+- Dự án Android nằm trong thư mục `android/` và được khóa ở chế độ ngang.
+- Bản Android đóng gói tài nguyên game; chế độ online kết nối tới `https://tankad.onrender.com`.
+
 ## Chế độ chơi
 
 - `Play vs AI`: chơi ngay với máy tính.
