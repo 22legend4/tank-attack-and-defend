@@ -23,15 +23,20 @@
         <button id="showHowToPlayButton" class="menu-button">How to Play > </button>
       </div>
       <div id="createView" class="lobby-view hidden">
-        <label class="private-option"><input id="privateRoomInput" type="checkbox"> Private room</label>
-        <button id="createRoomButton" class="menu-button">Create Room</button>
+        <button id="createPrivateRoomButton" class="menu-button">Private Room</button>
+        <button id="createPublicRoomButton" class="menu-button">Public Room</button>
         <button class="back-button" data-lobby-back>Back</button>
       </div>
       <div id="joinView" class="lobby-view hidden">
-        <label for="roomIdInput">Room ID</label>
-        <input id="roomIdInput" type="text" maxlength="6" autocomplete="off" placeholder="Leave blank for a random room">
-        <button id="joinRoomButton" class="menu-button">Join Room</button>
+        <button id="joinPrivateChoiceButton" class="menu-button">Private Room</button>
+        <button id="joinPublicRoomButton" class="menu-button">Public Room</button>
         <button class="back-button" data-lobby-back>Back</button>
+      </div>
+      <div id="joinPrivateView" class="lobby-view hidden">
+        <label for="roomIdInput">Room ID</label>
+        <input id="roomIdInput" type="text" maxlength="6" autocomplete="off" placeholder="Enter private room ID">
+        <button id="joinPrivateRoomButton" class="menu-button">Join Private Room</button>
+        <button id="joinChoiceBackButton" class="back-button">Back</button>
       </div>
       <div id="waitingView" class="lobby-view hidden">
         <p>Room ID</p>

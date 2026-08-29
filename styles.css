@@ -21,8 +21,6 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
 .menu-button, .back-button { min-height: 50px; border: 1px solid #55717d; border-radius: 9px; background: linear-gradient(#244654, #122b35); font-weight: 800; }
 .menu-button { border-color: #38d9ff; }
 .back-button { background: #17262d; }
-.private-option { display: flex; justify-content: center; gap: 9px; padding: 9px; font-size: 18px; }
-.private-option input { width: 20px; height: 20px; }
 .lobby-view label[for="roomIdInput"] { text-align: left; font-weight: 700; }
 #roomIdInput { width: 100%; padding: 12px; border: 1px solid #66808b; border-radius: 8px; background: #071319; color: #fff; font: inherit; text-transform: uppercase; }
 #roomIdDisplay { font-size: 42px; letter-spacing: 8px; color: #ffcf32; user-select: all; }
@@ -208,7 +206,6 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .lobby-view { gap: 6px; }
   .menu-button, .back-button { min-height: 34px; }
   .lobby-error { min-height: 15px; margin-top: 5px; font-size: 12px; }
-  .private-option { padding: 4px; font-size: 15px; }
   #roomIdInput { padding: 7px 10px; }
   #roomIdDisplay { font-size: 29px; }
   .lobby-panel:has(.how-to-play-view:not(.hidden)) { height: calc(100dvh - 12px); }

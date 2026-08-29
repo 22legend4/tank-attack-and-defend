@@ -827,9 +827,9 @@ async function apiRequest(path, options = {}) {
   return data;
 }
 
-async function createOnlineRoom() {
+async function createOnlineRoom(isPrivate) {
   try {
-    const data = await apiRequest("/api/create", { method: "POST", body: { private: document.getElementById("privateRoomInput").checked } });
+    const data = await apiRequest("/api/create", { method: "POST", body: { private: isPrivate } });
     network = { ...data, sequence: 0, connected: false };
     playMode = "online-host";
     localSide = data.side;
@@ -860,9 +860,10 @@ async function tryPublicAiFallback(roomId, clientId) {
   }
 }
 
-async function joinOnlineRoom() {
+async function joinOnlineRoom(isPrivate) {
   try {
-    const roomId = document.getElementById("roomIdInput").value.trim().toUpperCase();
+    const roomId = isPrivate ? document.getElementById("roomIdInput").value.trim().toUpperCase() : "";
+    if (isPrivate && !roomId) throw new Error("Enter a private room ID.");
     const data = await apiRequest("/api/join", { method: "POST", body: { roomId } });
     network = { ...data, sequence: 0, connected: true };
     playMode = "online-guest";
@@ -1000,8 +1001,16 @@ document.getElementById("showCreateButton").addEventListener("click", () => show
 document.getElementById("showJoinButton").addEventListener("click", () => showLobbyView("joinView"));
 document.getElementById("showHowToPlayButton").addEventListener("click", () => showLobbyView("howToPlayView"));
 document.querySelectorAll("[data-lobby-back]").forEach(button => button.addEventListener("click", () => showLobbyView("lobbyHome")));
-document.getElementById("createRoomButton").addEventListener("click", createOnlineRoom);
-document.getElementById("joinRoomButton").addEventListener("click", joinOnlineRoom);
+document.getElementById("createPrivateRoomButton").addEventListener("click", () => createOnlineRoom(true));
+document.getElementById("createPublicRoomButton").addEventListener("click", () => createOnlineRoom(false));
+document.getElementById("joinPrivateChoiceButton").addEventListener("click", () => {
+  document.getElementById("roomIdInput").value = "";
+  showLobbyView("joinPrivateView");
+  document.getElementById("roomIdInput").focus();
+});
+document.getElementById("joinPublicRoomButton").addEventListener("click", () => joinOnlineRoom(false));
+document.getElementById("joinPrivateRoomButton").addEventListener("click", () => joinOnlineRoom(true));
+document.getElementById("joinChoiceBackButton").addEventListener("click", () => showLobbyView("joinView"));
 document.getElementById("cancelRoomButton").addEventListener("click", leaveRoom);
 document.getElementById("copyRoomButton").addEventListener("click", async () => {
   if (!network) return;
@@ -1011,6 +1020,9 @@ document.getElementById("copyRoomButton").addEventListener("click", async () => 
   } catch (_) { document.getElementById("waitingMessage").textContent = `Room ID: ${network.roomId}`; }
 });
 document.getElementById("roomIdInput").addEventListener("input", event => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
+document.getElementById("roomIdInput").addEventListener("keydown", event => {
+  if (event.key === "Enter") joinOnlineRoom(true);
+});
 document.getElementById("orientationButton").addEventListener("click", enterLandscapeMode);
 
 if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
