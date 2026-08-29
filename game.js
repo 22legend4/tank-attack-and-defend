@@ -840,23 +840,32 @@ async function createOnlineRoom(isPrivate) {
     if (!data.private) {
       const waitingRoomId = data.roomId;
       const waitingClientId = data.clientId;
-      setTimeout(() => tryPublicAiFallback(waitingRoomId, waitingClientId), 120_000);
+      setTimeout(() => tryPublicAiFallback(waitingRoomId, waitingClientId), 60_000);
     }
   } catch (error) { lobbyError(error.message); }
 }
 
 async function tryPublicAiFallback(roomId, clientId) {
   if (!network || network.roomId !== roomId || network.clientId !== clientId || network.connected || playMode !== "online-host") return;
+  network.fallingBackToAi = true;
   try {
     const result = await apiRequest("/api/fallback-ai", { method: "POST", body: { roomId, clientId } });
-    if (!result.fallback || !network || network.roomId !== roomId) return;
+    if (!network || network.roomId !== roomId) return;
+    if (!result.fallback) {
+      network.fallingBackToAi = false;
+      if (!networkStream && !networkPolling) startNetworkSync();
+      return;
+    }
     stopNetworkSync();
     network = null;
     playMode = "ai";
     resetGame();
     document.getElementById("lobby").classList.add("hidden");
   } catch (error) {
-    if (network?.roomId === roomId) handleRoomClosed(error.message);
+    if (network?.roomId === roomId) {
+      network.fallingBackToAi = false;
+      handleRoomClosed(error.message);
+    }
   }
 }
 
@@ -899,6 +908,7 @@ function startNetworkPolling() {
       for (const message of data.messages) handleNetworkMessage(message);
       network.sequence = Math.max(network.sequence, data.sequence);
     } catch (error) {
+      networkPolling = false;
       handleRoomClosed(error.message);
       return;
     }
@@ -969,6 +979,7 @@ function stopNetworkSync() {
 }
 
 function handleRoomClosed(message) {
+  if (network?.fallingBackToAi) return;
   stopNetworkSync();
   network = null;
   playMode = "menu";

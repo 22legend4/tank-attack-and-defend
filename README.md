@@ -21,7 +21,7 @@ Sau đó mở `http://localhost:4173`. Người chơi khác trong cùng mạng c
 - AI chỉ dùng `Destroy` khi số đạn của người chơi đã vượt qua giữa sân sang phần sân AI lớn hơn tổng số đạn hiện có của AI.
 - AI chỉ dùng `Reflect` khi mục tiêu gần lõi nhất là Laser hoặc Black Hole. Khi hết `Reflect`, AI mới dùng `Shield` để chặn hai loại này; AI cũng dùng `Shield` khi gặp Triple Shot.
 - `Create Room`: chọn `Private Room` để tạo phòng riêng có ID, hoặc `Public Room` để tạo phòng chờ ghép ngẫu nhiên.
-- Nếu phòng public chỉ có chủ phòng và chờ quá 2 phút, phòng online tự đóng và chủ phòng được ghép với AI. Phòng private không áp dụng thời hạn này.
+- Nếu phòng public chỉ có chủ phòng và chờ quá 1 phút, chủ phòng được đưa thẳng vào trận đấu với AI. Phòng private không áp dụng thời hạn này.
 - `Join Room`: chọn `Private Room` để nhập ID phòng riêng, hoặc `Public Room` để tự động tìm một phòng công khai đang chờ.
 - Màu đội của người chơi được chọn ngẫu nhiên khi trận bắt đầu; người còn lại nhận màu đối diện.
 - Phòng và trận đấu tồn tại trong bộ nhớ của máy chủ; khi dừng `server.js`, các phòng sẽ đóng.
