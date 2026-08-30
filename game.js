@@ -716,10 +716,10 @@ function drawLevelMarker() {
   if (playMode !== "ai") return;
   const introActive = game.levelIntroRemaining > 0;
   ctx.save();
-  ctx.globalAlpha = introActive ? 1 : 0.5;
+  ctx.globalAlpha = introActive ? 1 : 0.2;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "900 112px system-ui, sans-serif";
+  ctx.font = "900 56px system-ui, sans-serif";
   ctx.lineWidth = 8;
   ctx.strokeStyle = "#061015";
   ctx.fillStyle = "#ffffff";

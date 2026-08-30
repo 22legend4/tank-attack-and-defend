@@ -23,7 +23,7 @@ Sau đó mở `http://localhost:4173`. Người chơi khác trong cùng mạng c
 
 - `Play vs AI`: chơi ngay với máy tính.
 - Chế độ AI gồm 10 level liên tiếp. Thắng sẽ sang level kế tiếp; thua hoặc hòa sẽ quay lại level 1.
-- Trước mỗi trận AI, tên level hiện rõ giữa sân trong 2 giây và trận đấu tạm dừng. Khi trận bắt đầu, tên level vẫn nằm dưới các xe tăng, lính và đường đạn với opacity 50%.
+- Trước mỗi trận AI, tên level hiện rõ giữa sân trong 2 giây và trận đấu tạm dừng. Khi trận bắt đầu, tên level vẫn nằm dưới các xe tăng, lính và đường đạn với opacity 20%.
 - Level 1 dùng ngẫu nhiên đạn thường và Laser, tự dùng Shield để phòng thủ và không gọi lính. Level 2 dùng thêm Artillery và Black Hole. Level 3 giống level 2 nhưng có thể gọi lính.
 - Level 4 giữ cơ chế AI cũ: bắn đáp trả người chơi. Từ level 5, xe tăng AI có 500 đạn và bắn liên tục 4 viên/giây; khi đổi sang đạn đặc biệt, AI dừng 0,5 giây trước và sau phát bắn.
 - Level 6 tăng Triple Shot của AI lên 20; level 7 tăng Artillery lên 4; level 8 tăng Shield lên 7; level 9 tăng Laser lên 3.
