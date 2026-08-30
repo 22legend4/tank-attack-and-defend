@@ -11,6 +11,16 @@ const SOLDIER_X = { player: 190, enemy: W - 190 };
 const BASE_SPEED = (CORE_X.enemy - HOME_X.player) / 8;
 
 const ITEM_DEFAULTS = Object.freeze({ laser: 2, magic: 2, destroy: 1, clone: 10, fan: 4, shield: 5, artillery: 3 });
+const AI_LEVEL_MAX = 7;
+const AI_LEVEL_CONFIG = Object.freeze({
+  1: { ammo: 400 },
+  2: { ammo: 500 },
+  3: { ammo: 500, clone: 20 },
+  4: { ammo: 500, clone: 20, artillery: 4 },
+  5: { ammo: 500, clone: 20, artillery: 4, shield: 7 },
+  6: { ammo: 500, clone: 20, artillery: 4, shield: 7, laser: 3 },
+  7: { ammo: 550, clone: 20, artillery: 4, shield: 7, laser: 3, startingSoldier: true }
+});
 const COLORS = { player: "#ffb72d", enemy: "#61df3d" };
 const LABELS = { normal: "Normal Bullet", laser: "Laser", magic: "Black Hole", clone: "Triple Shot", artillery: "Artillery" };
 
@@ -47,6 +57,7 @@ let network = null;
 let networkPolling = false;
 let networkStream = null;
 let lastStateSent = 0;
+let aiLevel = 1;
 
 async function enterLandscapeMode() {
   const message = document.getElementById("orientationMessage");
@@ -104,16 +115,37 @@ function resetGame({ preserveBackground = false } = {}) {
     aiBurstTimer: 5,
     aiBurstShots: 0,
     aiBurstShotTimer: 0,
-    aiOpeningShots: Array.from({ length: openingShotCount }, () => 0.12 + Math.random() * 0.78).sort((a, b) => a - b)
+    aiOpeningShots: Array.from({ length: openingShotCount }, () => 0.12 + Math.random() * 0.78).sort((a, b) => a - b),
+    aiLevel: playMode === "ai" ? aiLevel : 0,
+    aiContinuousShotTimer: 0,
+    aiWeaponTransition: null,
+    aiSoldierRespawnTimers: [0, 0]
   };
+  if (playMode === "ai") configureAiLevel();
   nextId = 1;
   if (network) {
     network.rematchReady = false;
     network.opponentRematchReady = false;
   }
-  setMessage("Tank Attack and Defend");
+  setMessage(playMode === "ai" ? `AI LEVEL ${aiLevel}` : "Tank Attack and Defend");
   refreshMatchControls();
   refreshUI();
+}
+
+function configureAiLevel() {
+  const aiSide = other(localSide);
+  const ai = game[aiSide];
+  const config = AI_LEVEL_CONFIG[aiLevel];
+  ai.ammo = config.ammo;
+  for (const item of Object.keys(ITEM_DEFAULTS)) {
+    if (config[item] !== undefined) ai.items[item] = config[item];
+  }
+  if (aiLevel >= 2) game.aiOpeningShots = [];
+  if (config.startingSoldier) {
+    const slot = Math.random() < 0.5 ? 0 : 1;
+    ai.soldiers[slot] = true;
+    ai.soldierTimers[slot] = 0;
+  }
 }
 
 function other(side) { return side === "player" ? "enemy" : "player"; }
@@ -140,7 +172,13 @@ function refreshMatchControls() {
   const restartButton = document.getElementById("restartButton");
   restartButton.classList.toggle("hidden", !inMatch || !over);
   restartButton.disabled = Boolean(network?.rematchReady);
-  restartButton.textContent = network?.rematchReady ? "WAITING FOR OPPONENT" : "PLAY AGAIN";
+  let restartText = "PLAY AGAIN";
+  if (playMode === "ai" && over) {
+    if (game.campaignComplete) restartText = "PLAY CAMPAIGN AGAIN";
+    else if (game.nextAiLevel > 1) restartText = `PLAY AI LEVEL ${game.nextAiLevel}`;
+    else restartText = "RETRY FROM AI LEVEL 1";
+  }
+  restartButton.textContent = network?.rematchReady ? "WAITING FOR OPPONENT" : restartText;
   document.getElementById("surrenderButton").classList.toggle("hidden", !inMatch || over);
   document.getElementById("homeButton").classList.toggle("hidden", !inMatch);
 }
@@ -165,7 +203,7 @@ function addProjectile(owner, type, lane = 1, fromSoldier = false) {
     artilleryElapsed: 0, artilleryDuration: 3.2,
     startX: x, targetX: CORE_X[other(owner)]
   });
-  if (playMode === "ai" && owner === localSide && type === "normal" && !fromSoldier && game.now >= 1) {
+  if (playMode === "ai" && aiLevel === 1 && owner === localSide && type === "normal" && !fromSoldier && game.now >= 1) {
     addProjectile(other(localSide), "normal", 1);
   }
   refreshUI();
@@ -256,7 +294,7 @@ function sacrifice(side, action) {
     const alive = [0, 1].filter(i => foe.soldiers[i]);
     if (!alive.length) return false;
     unit.coreHp -= 1;
-    foe.soldiers[alive[Math.floor(Math.random() * alive.length)]] = false;
+    destroySoldier(other(side), alive[Math.floor(Math.random() * alive.length)]);
   } else if (action === "core" && unit.coreHp >= 2) {
     unit.coreHp -= 2;
     damageCore(other(side), 1);
@@ -264,6 +302,16 @@ function sacrifice(side, action) {
   checkEnd();
   refreshUI();
   return true;
+}
+
+function destroySoldier(side, slot) {
+  const unit = game[side];
+  if (!unit.soldiers[slot]) return;
+  unit.soldiers[slot] = false;
+  unit.soldierTimers[slot] = 0;
+  if (playMode === "ai" && aiLevel === 7 && side === other(localSide)) {
+    game.aiSoldierRespawnTimers[slot] = 1;
+  }
 }
 
 function revive(side) {
@@ -402,7 +450,7 @@ function resolveImpacts() {
     const slot = p.lane === 0 ? 0 : p.lane === 2 ? 1 : -1;
     if (slot >= 0 && unit.soldiers[slot] && crossed(p, SOLDIER_X[target])) {
       p.alive = false;
-      unit.soldiers[slot] = false;
+      destroySoldier(target, slot);
       addEffect(SOLDIER_X[target], LANES[p.lane], "#ff5959", "SOLDIER DOWN", 0.7);
       continue;
     }
@@ -452,6 +500,22 @@ function checkEnd() {
   let result = "DRAW — BOTH CORES DESTROYED";
   if (game[localSide].coreHp <= 0 && game[other(localSide)].coreHp > 0) result = "DEFEAT — YOUR CORE WAS DESTROYED";
   if (game[other(localSide)].coreHp <= 0 && game[localSide].coreHp > 0) result = "VICTORY — ENEMY CORE DESTROYED";
+  if (playMode === "ai") {
+    game.completedAiLevel = aiLevel;
+    if (result.startsWith("VICTORY")) {
+      if (aiLevel < AI_LEVEL_MAX) {
+        game.nextAiLevel = aiLevel + 1;
+        result = `VICTORY — AI LEVEL ${aiLevel} CLEARED`;
+      } else {
+        game.nextAiLevel = 1;
+        game.campaignComplete = true;
+        result = "VICTORY — ALL 7 AI LEVELS CLEARED";
+      }
+    } else {
+      game.nextAiLevel = 1;
+      if (result.startsWith("DEFEAT")) result = `DEFEAT — RETURNING TO AI LEVEL 1`;
+    }
+  }
   game.result = result;
   setMessage(result);
   refreshMatchControls();
@@ -476,11 +540,13 @@ function updateAI(dt) {
   const ai = game[aiSide];
   const human = game[localSide];
   game.aiTimer -= dt;
+  updateAiSoldierRespawns(dt, aiSide);
+  if (aiLevel >= 2) updateAdvancedAiFire(dt, aiSide);
   while (game.aiOpeningShots?.length && game.aiOpeningShots[0] <= game.now) {
     game.aiOpeningShots.shift();
     addProjectile(aiSide, "normal", 1);
   }
-  if (!human.tankAlive && ai.tankAlive) {
+  if (aiLevel === 1 && !human.tankAlive && ai.tankAlive) {
     game.aiFreeFireTimer -= dt;
     if (game.aiFreeFireTimer <= 0) {
       addProjectile(aiSide, "normal", 1);
@@ -489,7 +555,7 @@ function updateAI(dt) {
   } else {
     game.aiFreeFireTimer = 0;
   }
-  if (ai.tankAlive) {
+  if (aiLevel === 1 && ai.tankAlive) {
     game.aiBurstTimer -= dt;
     if (game.aiBurstTimer <= 0) {
       game.aiBurstTimer += 5;
@@ -529,6 +595,7 @@ function updateAI(dt) {
     if (ai.items.fan <= 0 && ai.items.shield > 0 && defensiveThreats.some(p => p.type === "laser" || p.type === "magic")) return fireSpecial(aiSide, "shield");
     if (ai.items.shield > 0 && defensiveThreats.some(p => p.type === "clone")) return fireSpecial(aiSide, "shield");
   }
+  if (game.aiWeaponTransition) return;
   if (game.now < 1) return;
   if (game.aiTimer > 0 || game.over) return;
   game.aiTimer = 0.55 + Math.random() * 0.75;
@@ -539,7 +606,52 @@ function updateAI(dt) {
   if (ai.soldiers.filter(Boolean).length < 2 && ai.ammo >= 10 && Math.random() < 0.25) return summon(aiSide);
   const choices = ["laser", "magic", "clone", "artillery"];
   const type = choices[Math.floor(Math.random() * choices.length)];
-  fireSpecial(aiSide, type);
+  if (aiLevel === 1) fireSpecial(aiSide, type);
+  else queueAiSpecial(aiSide, type);
+}
+
+function updateAdvancedAiFire(dt, aiSide) {
+  const ai = game[aiSide];
+  const transition = game.aiWeaponTransition;
+  if (transition) {
+    transition.timer -= dt;
+    if (transition.timer <= 0 && transition.phase === "before") {
+      fireSpecial(aiSide, transition.type);
+      transition.phase = "after";
+      transition.timer = 0.5;
+    } else if (transition.timer <= 0) {
+      game.aiWeaponTransition = null;
+      game.aiContinuousShotTimer = 0;
+    }
+    return;
+  }
+  if (!ai.tankAlive || ai.ammo <= 0) return;
+  game.aiContinuousShotTimer -= dt;
+  while (game.aiContinuousShotTimer <= 0 && ai.ammo > 0) {
+    addProjectile(aiSide, "normal", 1);
+    game.aiContinuousShotTimer += 0.25;
+  }
+}
+
+function queueAiSpecial(aiSide, type) {
+  const ai = game[aiSide];
+  if (game.aiWeaponTransition || !ai.tankAlive || ai.items[type] <= 0) return false;
+  game.aiWeaponTransition = { type, phase: "before", timer: 0.5 };
+  return true;
+}
+
+function updateAiSoldierRespawns(dt, aiSide) {
+  if (aiLevel !== 7) return;
+  const ai = game[aiSide];
+  for (let slot = 0; slot < 2; slot++) {
+    if (ai.soldiers[slot] || game.aiSoldierRespawnTimers[slot] <= 0) continue;
+    game.aiSoldierRespawnTimers[slot] -= dt;
+    if (game.aiSoldierRespawnTimers[slot] <= 0) {
+      ai.soldiers[slot] = true;
+      ai.soldierTimers[slot] = 0;
+      addEffect(SOLDIER_X[aiSide], LANES[slot === 0 ? 0 : 2], COLORS[aiSide], "SOLDIER REINFORCEMENT", 0.9);
+    }
+  }
 }
 
 function refreshUI() {
@@ -774,6 +886,7 @@ document.querySelectorAll("[data-action]").forEach(button => button.addEventList
 async function requestRematch() {
   if (!game.over) return;
   if (playMode === "ai") {
+    aiLevel = game.nextAiLevel || 1;
     resetGame({ preserveBackground: true });
     return;
   }
@@ -861,6 +974,7 @@ async function tryPublicAiFallback(roomId, clientId) {
     stopNetworkSync();
     network = null;
     playMode = "ai";
+    aiLevel = 1;
     resetGame();
     document.getElementById("lobby").classList.add("hidden");
   } catch (error) {
@@ -1006,6 +1120,7 @@ async function leaveRoom() {
 
 document.getElementById("playAiButton").addEventListener("click", () => {
   playMode = "ai";
+  aiLevel = 1;
   localSide = Math.random() < 0.5 ? "player" : "enemy";
   resetGame();
   document.getElementById("lobby").classList.add("hidden");

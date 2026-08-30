@@ -22,6 +22,10 @@ Sau đó mở `http://localhost:4173`. Người chơi khác trong cùng mạng c
 ## Chế độ chơi
 
 - `Play vs AI`: chơi ngay với máy tính.
+- Chế độ AI gồm 7 level liên tiếp. Thắng sẽ sang level kế tiếp; thua hoặc hòa sẽ quay lại level 1.
+- Level 1 giữ nguyên cơ chế AI bắn đáp trả người chơi. Từ level 2, xe tăng AI có 500 đạn và bắn liên tục 4 viên/giây; khi đổi sang đạn đặc biệt, AI dừng 0,5 giây trước và sau phát bắn.
+- Level 3 tăng Triple Shot của AI lên 20; level 4 tăng Artillery lên 4; level 5 tăng Shield lên 7; level 6 tăng Laser lên 3.
+- Level 7 tăng đạn thường lên 550, có sẵn một lính và lính AI bị tiêu diệt sẽ trở lại sau 1 giây.
 - Trong giây đầu của trận đấu với AI, xe tăng AI bắn ngẫu nhiên 1–3 đạn thường. Sau đó, mỗi phát đạn thường từ xe tăng người chơi được AI bắn đáp lại một phát cùng thời điểm; đạn tự động của lính không được tính.
 - Khi xe tăng người chơi bị phá hủy, xe tăng AI chuyển sang bắn đạn thường tự do với nhịp ngẫu nhiên. Khi xe tăng người chơi hồi sinh, AI quay lại cơ chế bắn theo người chơi.
 - Cứ mỗi 5 giây, nếu xe tăng AI còn hoạt động, nó bắn thêm ngẫu nhiên 1 hoặc 2 đạn thường liên tiếp; hai phát trong cùng đợt cách nhau 0,16 giây.
