@@ -11,15 +11,18 @@ const SOLDIER_X = { player: 190, enemy: W - 190 };
 const BASE_SPEED = (CORE_X.enemy - HOME_X.player) / 8;
 
 const ITEM_DEFAULTS = Object.freeze({ laser: 2, magic: 2, destroy: 1, clone: 10, fan: 4, shield: 5, artillery: 3 });
-const AI_LEVEL_MAX = 7;
+const AI_LEVEL_MAX = 10;
 const AI_LEVEL_CONFIG = Object.freeze({
-  1: { ammo: 400 },
-  2: { ammo: 500 },
-  3: { ammo: 500, clone: 20 },
-  4: { ammo: 500, clone: 20, artillery: 4 },
-  5: { ammo: 500, clone: 20, artillery: 4, shield: 7 },
-  6: { ammo: 500, clone: 20, artillery: 4, shield: 7, laser: 3 },
-  7: { ammo: 550, clone: 20, artillery: 4, shield: 7, laser: 3, startingSoldier: true }
+  1: { ammo: 400, beginnerWeapons: ["normal", "laser"] },
+  2: { ammo: 400, beginnerWeapons: ["normal", "laser", "artillery", "magic"] },
+  3: { ammo: 400, beginnerWeapons: ["normal", "laser", "artillery", "magic"], canSummon: true },
+  4: { ammo: 400 },
+  5: { ammo: 500 },
+  6: { ammo: 500, clone: 20 },
+  7: { ammo: 500, clone: 20, artillery: 4 },
+  8: { ammo: 500, clone: 20, artillery: 4, shield: 7 },
+  9: { ammo: 500, clone: 20, artillery: 4, shield: 7, laser: 3 },
+  10: { ammo: 550, clone: 20, artillery: 4, shield: 7, laser: 3, startingSoldier: true }
 });
 const COLORS = { player: "#ffb72d", enemy: "#61df3d" };
 const LABELS = { normal: "Normal Bullet", laser: "Laser", magic: "Black Hole", clone: "Triple Shot", artillery: "Artillery" };
@@ -110,6 +113,7 @@ function resetGame({ preserveBackground = false } = {}) {
       : Math.floor(Math.random() * 3) + 1,
     over: false,
     now: 0,
+    levelIntroRemaining: playMode === "ai" ? 2 : 0,
     aiTimer: 1.2,
     aiFreeFireTimer: 0,
     aiBurstTimer: 5,
@@ -140,7 +144,7 @@ function configureAiLevel() {
   for (const item of Object.keys(ITEM_DEFAULTS)) {
     if (config[item] !== undefined) ai.items[item] = config[item];
   }
-  if (aiLevel >= 2) game.aiOpeningShots = [];
+  if (aiLevel >= 5) game.aiOpeningShots = [];
   if (config.startingSoldier) {
     const slot = Math.random() < 0.5 ? 0 : 1;
     ai.soldiers[slot] = true;
@@ -203,7 +207,7 @@ function addProjectile(owner, type, lane = 1, fromSoldier = false) {
     artilleryElapsed: 0, artilleryDuration: 3.2,
     startX: x, targetX: CORE_X[other(owner)]
   });
-  if (playMode === "ai" && aiLevel === 1 && owner === localSide && type === "normal" && !fromSoldier && game.now >= 1) {
+  if (playMode === "ai" && aiLevel === 4 && owner === localSide && type === "normal" && !fromSoldier && game.now >= 1) {
     addProjectile(other(localSide), "normal", 1);
   }
   refreshUI();
@@ -309,7 +313,7 @@ function destroySoldier(side, slot) {
   if (!unit.soldiers[slot]) return;
   unit.soldiers[slot] = false;
   unit.soldierTimers[slot] = 0;
-  if (playMode === "ai" && aiLevel === 7 && side === other(localSide)) {
+  if (playMode === "ai" && aiLevel === 10 && side === other(localSide)) {
     game.aiSoldierRespawnTimers[slot] = 1;
   }
 }
@@ -344,6 +348,11 @@ function updateGuest(dt) {
 function update(dt) {
   if (game.over || playMode === "menu") return;
   if (playMode === "online-guest") return updateGuest(dt);
+  if (game.levelIntroRemaining > 0) {
+    game.levelIntroRemaining = Math.max(0, game.levelIntroRemaining - dt);
+    refreshUI();
+    return;
+  }
   game.now += dt;
   for (const sideName of ["player", "enemy"]) {
     const side = game[sideName];
@@ -509,7 +518,7 @@ function checkEnd() {
       } else {
         game.nextAiLevel = 1;
         game.campaignComplete = true;
-        result = "VICTORY — ALL 7 AI LEVELS CLEARED";
+        result = "VICTORY — ALL 10 AI LEVELS CLEARED";
       }
     } else {
       game.nextAiLevel = 1;
@@ -541,12 +550,12 @@ function updateAI(dt) {
   const human = game[localSide];
   game.aiTimer -= dt;
   updateAiSoldierRespawns(dt, aiSide);
-  if (aiLevel >= 2) updateAdvancedAiFire(dt, aiSide);
+  if (aiLevel >= 5) updateAdvancedAiFire(dt, aiSide);
   while (game.aiOpeningShots?.length && game.aiOpeningShots[0] <= game.now) {
     game.aiOpeningShots.shift();
     addProjectile(aiSide, "normal", 1);
   }
-  if (aiLevel === 1 && !human.tankAlive && ai.tankAlive) {
+  if (aiLevel === 4 && !human.tankAlive && ai.tankAlive) {
     game.aiFreeFireTimer -= dt;
     if (game.aiFreeFireTimer <= 0) {
       addProjectile(aiSide, "normal", 1);
@@ -555,7 +564,7 @@ function updateAI(dt) {
   } else {
     game.aiFreeFireTimer = 0;
   }
-  if (aiLevel === 1 && ai.tankAlive) {
+  if (aiLevel === 4 && ai.tankAlive) {
     game.aiBurstTimer -= dt;
     if (game.aiBurstTimer <= 0) {
       game.aiBurstTimer += 5;
@@ -584,6 +593,7 @@ function updateAI(dt) {
     return hasNotPassedShield && secondsToShield <= 1.35;
   });
   if (ai.shieldUntil <= game.now && defensiveThreats.length) {
+    if (aiLevel <= 3 && ai.items.shield > 0) return fireSpecial(aiSide, "shield");
     const nearestIncoming = incoming[0];
     const nearestIsThreat = defensiveThreats.includes(nearestIncoming);
     if (nearestIsThreat) {
@@ -602,11 +612,18 @@ function updateAI(dt) {
   if (!ai.tankAlive && ai.coreHp >= 4) return revive(aiSide);
   const playerBulletsInAiHalf = incoming.filter(p => aiSide === "player" ? p.x < W / 2 : p.x > W / 2).length;
   const aiBullets = game.projectiles.filter(p => p.alive && p.owner === aiSide).length;
-  if (ai.items.destroy > 0 && playerBulletsInAiHalf > aiBullets) return fireSpecial(aiSide, "destroy");
-  if (ai.soldiers.filter(Boolean).length < 2 && ai.ammo >= 10 && Math.random() < 0.25) return summon(aiSide);
+  if (aiLevel >= 4 && ai.items.destroy > 0 && playerBulletsInAiHalf > aiBullets) return fireSpecial(aiSide, "destroy");
+  const config = AI_LEVEL_CONFIG[aiLevel];
+  if ((aiLevel >= 4 || config.canSummon) && ai.soldiers.filter(Boolean).length < 2 && ai.ammo >= 10 && Math.random() < 0.25) return summon(aiSide);
+  if (config.beginnerWeapons) {
+    const type = config.beginnerWeapons[Math.floor(Math.random() * config.beginnerWeapons.length)];
+    if (type === "normal") addProjectile(aiSide, "normal", 1);
+    else fireSpecial(aiSide, type);
+    return;
+  }
   const choices = ["laser", "magic", "clone", "artillery"];
   const type = choices[Math.floor(Math.random() * choices.length)];
-  if (aiLevel === 1) fireSpecial(aiSide, type);
+  if (aiLevel === 4) fireSpecial(aiSide, type);
   else queueAiSpecial(aiSide, type);
 }
 
@@ -641,7 +658,7 @@ function queueAiSpecial(aiSide, type) {
 }
 
 function updateAiSoldierRespawns(dt, aiSide) {
-  if (aiLevel !== 7) return;
+  if (aiLevel !== 10) return;
   const ai = game[aiSide];
   for (let slot = 0; slot < 2; slot++) {
     if (ai.soldiers[slot] || game.aiSoldierRespawnTimers[slot] <= 0) continue;
@@ -670,26 +687,47 @@ function refreshUI() {
   document.getElementById("summonIcon").src = localSide === "player" ? "assets/yellow soldier.png" : "assets/green soldier.png";
   document.getElementById("reviveIcon").src = localSide === "player" ? "assets/yellow tank.png" : "assets/green tank.png";
   for (const key of Object.keys(ITEM_DEFAULTS)) document.getElementById(`${key}Count`).textContent = local.items[key];
-  document.getElementById("normalButton").disabled = game.over || !local.tankAlive || local.ammo <= 0;
-  document.getElementById("summonButton").disabled = game.over || local.ammo < 10 || local.soldiers.every(Boolean);
-  document.getElementById("tradeAmmoButton").disabled = game.over || local.coreHp < 1;
-  document.getElementById("destroySoldierButton").disabled = game.over || local.coreHp < 1 || !remote.soldiers.some(Boolean);
-  document.getElementById("damageCoreButton").disabled = game.over || local.coreHp < 2;
-  document.getElementById("reviveButton").disabled = game.over || local.tankAlive || local.coreHp < 4;
+  const waitingForLevelIntro = game.levelIntroRemaining > 0;
+  document.getElementById("surrenderButton").disabled = waitingForLevelIntro;
+  document.getElementById("normalButton").disabled = game.over || waitingForLevelIntro || !local.tankAlive || local.ammo <= 0;
+  document.getElementById("summonButton").disabled = game.over || waitingForLevelIntro || local.ammo < 10 || local.soldiers.every(Boolean);
+  document.getElementById("tradeAmmoButton").disabled = game.over || waitingForLevelIntro || local.coreHp < 1;
+  document.getElementById("destroySoldierButton").disabled = game.over || waitingForLevelIntro || local.coreHp < 1 || !remote.soldiers.some(Boolean);
+  document.getElementById("damageCoreButton").disabled = game.over || waitingForLevelIntro || local.coreHp < 2;
+  document.getElementById("reviveButton").disabled = game.over || waitingForLevelIntro || local.tankAlive || local.coreHp < 4;
   document.querySelectorAll("[data-action]").forEach(button => {
     const action = button.dataset.action;
     const needsTank = !["fan", "shield"].includes(action);
-    button.disabled = game.over || local.items[action] <= 0 || (needsTank && !local.tankAlive);
+    button.disabled = game.over || waitingForLevelIntro || local.items[action] <= 0 || (needsTank && !local.tankAlive);
   });
 }
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
   drawField();
+  drawLevelMarker();
   drawSide("player");
   drawSide("enemy");
   for (const p of game.projectiles) if (p.alive) drawProjectile(p);
   for (const e of game.effects) drawEffect(e);
+}
+
+function drawLevelMarker() {
+  if (playMode !== "ai") return;
+  const introActive = game.levelIntroRemaining > 0;
+  ctx.save();
+  ctx.globalAlpha = introActive ? 1 : 0.5;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "900 112px system-ui, sans-serif";
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = "#061015";
+  ctx.fillStyle = "#ffffff";
+  ctx.shadowColor = "#38d9ff";
+  ctx.shadowBlur = introActive ? 24 : 8;
+  ctx.strokeText(`LEVEL ${aiLevel}`, W / 2, H / 2);
+  ctx.fillText(`LEVEL ${aiLevel}`, W / 2, H / 2);
+  ctx.restore();
 }
 
 function drawField() {
@@ -854,6 +892,7 @@ function executeAction(side, action) {
 
 function control(action) {
   if (playMode === "menu") return;
+  if (game.levelIntroRemaining > 0 && action.kind !== "restart") return;
   if (playMode === "online-guest") sendRoomMessage("action", action);
   else executeAction(localSide, action);
 }

@@ -22,13 +22,15 @@ Sau đó mở `http://localhost:4173`. Người chơi khác trong cùng mạng c
 ## Chế độ chơi
 
 - `Play vs AI`: chơi ngay với máy tính.
-- Chế độ AI gồm 7 level liên tiếp. Thắng sẽ sang level kế tiếp; thua hoặc hòa sẽ quay lại level 1.
-- Level 1 giữ nguyên cơ chế AI bắn đáp trả người chơi. Từ level 2, xe tăng AI có 500 đạn và bắn liên tục 4 viên/giây; khi đổi sang đạn đặc biệt, AI dừng 0,5 giây trước và sau phát bắn.
-- Level 3 tăng Triple Shot của AI lên 20; level 4 tăng Artillery lên 4; level 5 tăng Shield lên 7; level 6 tăng Laser lên 3.
-- Level 7 tăng đạn thường lên 550, có sẵn một lính và lính AI bị tiêu diệt sẽ trở lại sau 1 giây.
-- Trong giây đầu của trận đấu với AI, xe tăng AI bắn ngẫu nhiên 1–3 đạn thường. Sau đó, mỗi phát đạn thường từ xe tăng người chơi được AI bắn đáp lại một phát cùng thời điểm; đạn tự động của lính không được tính.
-- Khi xe tăng người chơi bị phá hủy, xe tăng AI chuyển sang bắn đạn thường tự do với nhịp ngẫu nhiên. Khi xe tăng người chơi hồi sinh, AI quay lại cơ chế bắn theo người chơi.
-- Cứ mỗi 5 giây, nếu xe tăng AI còn hoạt động, nó bắn thêm ngẫu nhiên 1 hoặc 2 đạn thường liên tiếp; hai phát trong cùng đợt cách nhau 0,16 giây.
+- Chế độ AI gồm 10 level liên tiếp. Thắng sẽ sang level kế tiếp; thua hoặc hòa sẽ quay lại level 1.
+- Trước mỗi trận AI, tên level hiện rõ giữa sân trong 2 giây và trận đấu tạm dừng. Khi trận bắt đầu, tên level vẫn nằm dưới các xe tăng, lính và đường đạn với opacity 50%.
+- Level 1 dùng ngẫu nhiên đạn thường và Laser, tự dùng Shield để phòng thủ và không gọi lính. Level 2 dùng thêm Artillery và Black Hole. Level 3 giống level 2 nhưng có thể gọi lính.
+- Level 4 giữ cơ chế AI cũ: bắn đáp trả người chơi. Từ level 5, xe tăng AI có 500 đạn và bắn liên tục 4 viên/giây; khi đổi sang đạn đặc biệt, AI dừng 0,5 giây trước và sau phát bắn.
+- Level 6 tăng Triple Shot của AI lên 20; level 7 tăng Artillery lên 4; level 8 tăng Shield lên 7; level 9 tăng Laser lên 3.
+- Level 10 tăng đạn thường lên 550, có sẵn một lính và lính AI bị tiêu diệt sẽ trở lại sau 1 giây.
+- Ở level 4, trong giây đầu xe tăng AI bắn ngẫu nhiên 1–3 đạn thường. Sau đó, mỗi phát đạn thường từ xe tăng người chơi được AI bắn đáp lại một phát cùng thời điểm; đạn tự động của lính không được tính.
+- Cũng ở level 4, khi xe tăng người chơi bị phá hủy, xe tăng AI chuyển sang bắn đạn thường tự do với nhịp ngẫu nhiên. Khi xe tăng người chơi hồi sinh, AI quay lại cơ chế bắn theo người chơi.
+- Cứ mỗi 5 giây ở level 4, nếu xe tăng AI còn hoạt động, nó bắn thêm ngẫu nhiên 1 hoặc 2 đạn thường liên tiếp; hai phát trong cùng đợt cách nhau 0,16 giây.
 - AI chỉ dùng `Destroy` khi số đạn của người chơi đã vượt qua giữa sân sang phần sân AI lớn hơn tổng số đạn hiện có của AI.
 - AI chỉ dùng `Reflect` khi mục tiêu gần lõi nhất là Laser hoặc Black Hole. Khi hết `Reflect`, AI mới dùng `Shield` để chặn hai loại này; AI cũng dùng `Shield` khi gặp Triple Shot.
 - `Create Room`: chọn `Private Room` để tạo phòng riêng có ID, hoặc `Public Room` để tạo phòng chờ ghép ngẫu nhiên.
