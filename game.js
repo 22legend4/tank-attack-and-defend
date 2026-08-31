@@ -520,9 +520,12 @@ function checkEnd() {
         game.campaignComplete = true;
         result = "VICTORY — ALL 10 AI LEVELS CLEARED";
       }
+    } else if (result.startsWith("DEFEAT")) {
+      game.nextAiLevel = Math.max(1, aiLevel - 2);
+      result = `DEFEAT — RETURNING TO AI LEVEL ${game.nextAiLevel}`;
     } else {
-      game.nextAiLevel = 1;
-      if (result.startsWith("DEFEAT")) result = `DEFEAT — RETURNING TO AI LEVEL 1`;
+      game.nextAiLevel = aiLevel;
+      result = `DRAW — RETRY AI LEVEL ${aiLevel}`;
     }
   }
   game.result = result;
