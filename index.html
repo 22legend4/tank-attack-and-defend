@@ -93,9 +93,9 @@
     <section id="arenaWrap">
       <canvas id="arena" width="1280" height="560" aria-label="Tank battlefield"></canvas>
       <div class="sacrifice-actions">
-        <button id="tradeAmmoButton"><span>+ AMMO</span><small>−1 HP / +5 ammo</small></button>
-        <button id="destroySoldierButton"><span>− SOLDIER</span><small>−1 HP</small></button>
-        <button id="damageCoreButton"><span>− CORE HP</span><small>−2 HP</small></button>
+        <button id="tradeAmmoButton"><span>+ AMMO</span><small>(◀)</small></button>
+        <button id="destroySoldierButton"><span>− SOLDIER</span><small>(▼)</small></button>
+        <button id="damageCoreButton"><span>− CORE HP</span><small>(▶)</small></button>
       </div>
     </section>
 
@@ -106,22 +106,22 @@
         </button>
         <button id="summonButton" class="summon-button">
           <img id="summonIcon" src="assets/yellow soldier.png" alt="">
-          <span>Summon</span><small>−10 ammo</small>
+          <span>Summon (m)</span><small>−10 ammo</small>
         </button>
         <button id="reviveButton" class="revive-button">
           <img id="reviveIcon" src="assets/yellow tank.png" alt="">
-          <span>Revive</span><small>−4 core HP</small>
+          <span>Revive (v)</span><small>−4 core HP</small>
         </button>
       </div>
 
       <div id="specialActions" class="special-actions">
-        <button data-action="clone"><img src="assets/yellow-dan-phan-3.png" alt=""><span>Triple Shot</span><b id="cloneCount">10</b></button>
-        <button data-action="laser"><img src="assets/Lazer Button.png" alt=""><span>Laser</span><b id="laserCount">2</b></button>
-        <button data-action="magic"><img src="assets/ho-den-ngang.png" alt=""><span>Black Hole</span><b id="magicCount">2</b></button>
-        <button data-action="artillery"><img src="assets/dan-phao.png" alt=""><span>Artillery</span><b id="artilleryCount">3</b></button>
-        <button data-action="fan"><img src="assets/phan-nguoc.png" alt=""><span>Reflect</span><b id="fanCount">4</b></button>
-        <button data-action="destroy"><img src="assets/destroy.png" alt=""><span>Destroy</span><b id="destroyCount">1</b></button>
-        <button data-action="shield"><img src="assets/khien.png" alt=""><span>Shield</span><b id="shieldCount">5</b></button>
+        <button data-action="clone"><img src="assets/yellow-dan-phan-3.png" alt=""><span>Triple Shot (t)</span><b id="cloneCount">10</b></button>
+        <button data-action="laser"><img src="assets/Lazer Button.png" alt=""><span>Laser (l)</span><b id="laserCount">2</b></button>
+        <button data-action="magic"><img src="assets/ho-den-ngang.png" alt=""><span>Black Hole (b)</span><b id="magicCount">2</b></button>
+        <button data-action="artillery"><img src="assets/dan-phao.png" alt=""><span>Artillery (a)</span><b id="artilleryCount">3</b></button>
+        <button data-action="fan"><img src="assets/phan-nguoc.png" alt=""><span>Reflect (r)</span><b id="fanCount">4</b></button>
+        <button data-action="destroy"><img src="assets/destroy.png" alt=""><span>Destroy (d)</span><b id="destroyCount">1</b></button>
+        <button data-action="shield"><img src="assets/khien.png" alt=""><span>Shield (s)</span><b id="shieldCount">5</b></button>
       </div>
     </section>
   </main>
