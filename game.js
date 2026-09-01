@@ -26,6 +26,21 @@ const AI_LEVEL_CONFIG = Object.freeze({
 });
 const COLORS = { player: "#ffb72d", enemy: "#61df3d" };
 const LABELS = { normal: "Normal Bullet", laser: "Laser", magic: "Black Hole", clone: "Triple Shot", artillery: "Artillery" };
+const KEYBOARD_ACTIONS = Object.freeze({
+  f: { kind: "normal" },
+  t: { kind: "special", value: "clone" },
+  l: { kind: "special", value: "laser" },
+  b: { kind: "special", value: "magic" },
+  s: { kind: "special", value: "shield" },
+  r: { kind: "special", value: "fan" },
+  d: { kind: "special", value: "destroy" },
+  a: { kind: "special", value: "artillery" },
+  m: { kind: "summon" },
+  v: { kind: "revive" },
+  arrowleft: { kind: "sacrifice", value: "ammo" },
+  arrowdown: { kind: "sacrifice", value: "soldier" },
+  arrowright: { kind: "sacrifice", value: "core" }
+});
 
 const ASSET_PATHS = {
   background1: "assets/bg-1.jpg",
@@ -924,6 +939,18 @@ document.getElementById("tradeAmmoButton").addEventListener("click", () => contr
 document.getElementById("destroySoldierButton").addEventListener("click", () => control({ kind: "sacrifice", value: "soldier" }));
 document.getElementById("damageCoreButton").addEventListener("click", () => control({ kind: "sacrifice", value: "core" }));
 document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => control({ kind: "special", value: button.dataset.action })));
+document.addEventListener("keydown", event => {
+  const target = event.target;
+  const editingText = target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || target instanceof HTMLSelectElement
+    || target?.isContentEditable;
+  if (editingText || event.repeat || event.ctrlKey || event.altKey || event.metaKey || playMode === "menu" || game.over) return;
+  const action = KEYBOARD_ACTIONS[event.key.toLowerCase()];
+  if (!action) return;
+  if (event.key.startsWith("Arrow")) event.preventDefault();
+  control(action);
+});
 
 async function requestRematch() {
   if (!game.over) return;
