@@ -76,6 +76,84 @@ let networkPolling = false;
 let networkStream = null;
 let lastStateSent = 0;
 let aiLevel = 1;
+let audioContext = null;
+let nextSoundEventId = 1;
+let lastRemoteSoundEventId = 0;
+
+function unlockAudio() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioContext) audioContext = new AudioContextClass();
+  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  return audioContext;
+}
+
+function playTone(startFrequency, endFrequency, duration, type = "sine", volume = 0.12, delay = 0) {
+  const audio = unlockAudio();
+  if (!audio) return;
+  const start = audio.currentTime + delay;
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(startFrequency, start);
+  oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), start + duration);
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+  oscillator.connect(gain).connect(audio.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration);
+}
+
+function playNoise(duration, volume, delay = 0) {
+  const audio = unlockAudio();
+  if (!audio) return;
+  const start = audio.currentTime + delay;
+  const frameCount = Math.max(1, Math.floor(audio.sampleRate * duration));
+  const buffer = audio.createBuffer(1, frameCount, audio.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+  const source = audio.createBufferSource();
+  const gain = audio.createGain();
+  source.buffer = buffer;
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+  source.connect(gain).connect(audio.destination);
+  source.start(start);
+}
+
+function playGameSound(kind) {
+  if (kind === "collision-normal") {
+    playTone(240, 90, 0.11, "square", 0.1);
+  } else if (kind === "collision-clone") {
+    playTone(460, 180, 0.16, "triangle", 0.11);
+    playTone(620, 260, 0.12, "triangle", 0.07, 0.035);
+  } else if (kind === "collision-laser") {
+    playTone(1050, 320, 0.18, "sawtooth", 0.09);
+  } else if (kind === "collision-magic") {
+    playTone(130, 42, 0.32, "sine", 0.16);
+    playNoise(0.2, 0.035);
+  } else if (kind === "shield-hit") {
+    playTone(620, 1350, 0.2, "triangle", 0.13);
+    playTone(1100, 700, 0.16, "sine", 0.07, 0.025);
+  } else if (kind === "core-hit") {
+    playTone(125, 48, 0.34, "sawtooth", 0.15);
+    playNoise(0.18, 0.06);
+  } else if (kind === "summon") {
+    playTone(260, 360, 0.12, "square", 0.08);
+    playTone(390, 520, 0.13, "square", 0.08, 0.1);
+    playTone(540, 720, 0.16, "triangle", 0.09, 0.2);
+  } else if (kind === "revive") {
+    playTone(170, 680, 0.65, "sine", 0.13);
+    playTone(260, 920, 0.55, "triangle", 0.06, 0.12);
+  }
+}
+
+function emitGameSound(kind) {
+  playGameSound(kind);
+  if (!game || playMode === "online-guest") return;
+  game.soundEvents.push({ id: nextSoundEventId++, kind });
+  if (game.soundEvents.length > 16) game.soundEvents.shift();
+}
 
 async function enterLandscapeMode() {
   const message = document.getElementById("orientationMessage");
@@ -138,10 +216,13 @@ function resetGame({ preserveBackground = false } = {}) {
     aiLevel: playMode === "ai" ? aiLevel : 0,
     aiContinuousShotTimer: 0,
     aiWeaponTransition: null,
-    aiSoldierRespawnTimers: [0, 0]
+    aiSoldierRespawnTimers: [0, 0],
+    soundEvents: []
   };
   if (playMode === "ai") configureAiLevel();
   nextId = 1;
+  nextSoundEventId = 1;
+  lastRemoteSoundEventId = 0;
   if (network) {
     network.rematchReady = false;
     network.opponentRematchReady = false;
@@ -184,6 +265,14 @@ function setMessage(text, ms = 0) {
   }
 }
 setMessage.stamp = 0;
+
+function showCampaignCompleteDialog() {
+  document.getElementById("campaignCompleteDialog").classList.remove("hidden");
+}
+
+function hideCampaignCompleteDialog() {
+  document.getElementById("campaignCompleteDialog").classList.add("hidden");
+}
 
 function refreshMatchControls() {
   const inMatch = playMode !== "menu";
@@ -299,6 +388,7 @@ function summon(side) {
   const slot = empty[Math.floor(Math.random() * empty.length)];
   unit.soldiers[slot] = true;
   unit.soldierTimers[slot] = 0;
+  emitGameSound("summon");
   refreshUI();
 }
 
@@ -309,13 +399,16 @@ function sacrifice(side, action) {
   if (action === "ammo" && unit.coreHp >= 1) {
     unit.coreHp -= 1;
     unit.ammo += 5;
+    emitGameSound("core-hit");
   } else if (action === "soldier" && unit.coreHp >= 1) {
     const alive = [0, 1].filter(i => foe.soldiers[i]);
     if (!alive.length) return false;
     unit.coreHp -= 1;
+    emitGameSound("core-hit");
     destroySoldier(other(side), alive[Math.floor(Math.random() * alive.length)]);
   } else if (action === "core" && unit.coreHp >= 2) {
     unit.coreHp -= 2;
+    emitGameSound("core-hit");
     damageCore(other(side), 1);
   } else return false;
   checkEnd();
@@ -340,6 +433,7 @@ function revive(side) {
   unit.tankAlive = true;
   unit.tankX = HOME_X[side];
   addEffect(unit.tankX, LANES[1], COLORS[side], "REVIVED", 1);
+  emitGameSound("revive");
   checkEnd();
   refreshUI();
 }
@@ -394,6 +488,7 @@ function update(dt) {
       if (game[target].shieldUntil > game.now && crossedBetween(p.previousX, p.x, shieldX, p.dir)) {
         p.alive = false;
         addExplosion(p.x, p.y, "#9df7ff");
+        emitGameSound("shield-hit");
         continue;
       }
       if (t >= 1) landArtillery(p);
@@ -438,18 +533,24 @@ function resolveProjectileCollisions() {
       const bActsAsNormal = b.type === "normal" || b.type === "clone";
       if (a.type === "magic" && b.type === "magic") {
         a.alive = b.alive = false;
+        emitGameSound("collision-magic");
       } else if (a.type === "magic") {
         b.alive = false;
+        emitGameSound("collision-magic");
       } else if (b.type === "magic") {
         a.alive = false;
+        emitGameSound("collision-magic");
       } else if (a.type === "laser" && b.type === "laser") {
         continue;
       } else if (a.type === "laser" && bActsAsNormal) {
         b.alive = false;
+        emitGameSound("collision-laser");
       } else if (b.type === "laser" && aActsAsNormal) {
         a.alive = false;
+        emitGameSound("collision-laser");
       } else if (aActsAsNormal && bActsAsNormal) {
         a.alive = b.alive = false;
+        emitGameSound(a.type === "clone" || b.type === "clone" ? "collision-clone" : "collision-normal");
       }
     }
   }
@@ -463,6 +564,7 @@ function resolveImpacts() {
     const shieldX = shieldBarrierX(target);
     if (unit.shieldUntil > game.now && crossedBetween(p.previousX ?? p.x, p.x, shieldX, p.dir)) {
       p.alive = false;
+      emitGameSound("shield-hit");
       continue;
     }
 
@@ -514,6 +616,7 @@ function destroyTank(side) {
 function damageCore(side, amount) {
   game[side].coreHp = Math.max(0, game[side].coreHp - amount);
   addEffect(CORE_X[side], H / 2, "#ff3f50", `−${amount} HP`, 0.75);
+  emitGameSound("core-hit");
   checkEnd();
 }
 
@@ -534,6 +637,7 @@ function checkEnd() {
         game.nextAiLevel = 1;
         game.campaignComplete = true;
         result = "VICTORY — ALL 10 AI LEVELS CLEARED";
+        showCampaignCompleteDialog();
       }
     } else if (result.startsWith("DEFEAT")) {
       game.nextAiLevel = Math.max(1, aiLevel - 2);
@@ -918,6 +1022,14 @@ function control(action) {
 function applyGuestState(snapshot) {
   const localNow = game?.now || 0;
   const localProjectiles = new Map((game?.projectiles || []).map(projectile => [projectile.id, projectile]));
+  const remoteSoundEvents = snapshot.soundEvents || [];
+
+  for (const soundEvent of remoteSoundEvents) {
+    if (soundEvent.id > lastRemoteSoundEventId) playGameSound(soundEvent.kind);
+  }
+  if (remoteSoundEvents.length) {
+    lastRemoteSoundEventId = Math.max(lastRemoteSoundEventId, ...remoteSoundEvents.map(soundEvent => soundEvent.id));
+  }
 
   for (const projectile of snapshot.projectiles || []) {
     const local = localProjectiles.get(projectile.id);
@@ -1221,6 +1333,8 @@ document.getElementById("roomIdInput").addEventListener("keydown", event => {
   if (event.key === "Enter") joinOnlineRoom(true);
 });
 document.getElementById("orientationButton").addEventListener("click", enterLandscapeMode);
+document.getElementById("campaignCompleteCloseButton").addEventListener("click", hideCampaignCompleteDialog);
+document.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
 
 if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
   document.getElementById("orientationMessage").textContent = "Turn your iPhone sideways to play.";

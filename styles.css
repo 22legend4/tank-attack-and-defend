@@ -10,6 +10,21 @@ button:active { filter: brightness(1.2); }
 button:disabled { opacity: var(--disabled); cursor: not-allowed; }
 .hidden { display: none !important; }
 .orientation-prompt { display: none; }
+.campaign-complete-dialog {
+  position: fixed; z-index: 200; inset: 0; display: grid; place-items: center; padding: 20px;
+  background: #02090dcc;
+}
+.campaign-complete-card {
+  width: min(560px, 94vw); padding: 26px; border: 2px solid #ffd83d; border-radius: 16px;
+  background: linear-gradient(#173440, #091820); box-shadow: 0 0 34px #ffd83d66; text-align: center;
+}
+.campaign-complete-card h2 { margin: 0 0 14px; color: #ffe45c; font-size: clamp(27px, 4vw, 40px); }
+.campaign-complete-card p { margin: 12px 0; font-size: clamp(14px, 1.8vw, 19px); line-height: 1.45; }
+.campaign-complete-card a { color: #5ee8ff; font-weight: 800; }
+.campaign-complete-card button {
+  min-width: 130px; margin-top: 10px; padding: 10px 24px; border: 1px solid #fff; border-radius: 8px;
+  background: linear-gradient(#31667a, #173541); font-weight: 900;
+}
 .lobby {
   position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px;
   background: linear-gradient(#061018cc, #061018ee), url("assets/bg-1.jpg") center / cover;

@@ -34,6 +34,7 @@ Sau đó mở `http://localhost:4173`. Người chơi khác trong cùng mạng c
 - AI chỉ dùng `Destroy` khi số đạn của người chơi đã vượt qua giữa sân sang phần sân AI lớn hơn tổng số đạn hiện có của AI.
 - AI chỉ dùng `Reflect` khi mục tiêu gần lõi nhất là Laser hoặc Black Hole. Khi hết `Reflect`, AI mới dùng `Shield` để chặn hai loại này; AI cũng dùng `Shield` khi gặp Triple Shot.
 - Phím tắt trên máy tính: `F` bắn đạn thường; `T` Triple Shot; `L` Laser; `B` Black Hole; `S` Shield; `R` Reflect; `D` Destroy; `A` Artillery; `M` gọi lính; `V` hồi sinh. Các phím mũi tên trái, xuống và phải lần lượt dùng `+ Ammo`, `− Soldier` và `− Core HP`.
+- Trò chơi có hiệu ứng âm thanh riêng cho va chạm của đạn thường, Triple Shot, Laser và Black Hole; đồng thời phát âm thanh khi đạn chạm Shield, trụ mất máu, gọi lính hoặc hồi sinh xe tăng.
 - `Create Room`: chọn `Private Room` để tạo phòng riêng có ID, hoặc `Public Room` để tạo phòng chờ ghép ngẫu nhiên.
 - Nếu phòng public chỉ có chủ phòng và chờ quá 1 phút, chủ phòng được đưa thẳng vào trận đấu với AI. Phòng private không áp dụng thời hạn này.
 - `Join Room`: chọn `Private Room` để nhập ID phòng riêng, hoặc `Public Room` để tự động tìm một phòng công khai đang chờ.
