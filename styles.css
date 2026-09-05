@@ -161,8 +161,11 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   position: absolute; left: 50%; bottom: calc(clamp(62px, 6.2vw, 92px) + 5px); transform: translateX(-50%); white-space: nowrap;
 }
 .special-actions button b {
-  position: absolute; z-index: 2; right: 2px; bottom: 4px; display: grid; place-items: center;
-  min-width: 22px; height: 22px; border-radius: 12px; background: #071015e8; font-size: 12px;
+  position: absolute; z-index: 2; right: 2px; bottom: 4px;
+  color: #fff; background: transparent; font-size: 15px; line-height: 1; font-weight: 900;
+  -webkit-text-stroke: 1.5px #000;
+  paint-order: stroke fill;
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
 }
 .special-actions [data-action="clone"] { left: 4%; bottom: 18%; }
 .special-actions [data-action="laser"] { left: 13%; bottom: 9%; }
@@ -216,7 +219,7 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .sacrifice-actions { top: 8%; left: 4%; gap: 7px; grid-template-columns: 110px 145px 145px; }
   .sacrifice-actions button { min-height: 40px; padding: 4px 7px; font-size: 14px; }
   .special-actions button { min-height: 62px; }
-  .special-actions button b { min-width: 18px; height: 18px; font-size: 10px; }
+  .special-actions button b { font-size: 13px; }
   .summon-button, .revive-button { min-width: 90px; -webkit-text-stroke-width: 1px; }
 }
 
@@ -259,14 +262,14 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .special-actions button { width: 62px; min-height: 48px; font-size: 10px; }
   .special-actions button img { width: 44px; height: 44px; }
   .special-actions button span { bottom: 48px; }
-  .special-actions button b { right: 0; bottom: 1px; min-width: 17px; height: 17px; font-size: 9px; }
+  .special-actions button b { right: 0; bottom: 1px; font-size: 13px; }
   .special-actions [data-action="magic"] span,
   .special-actions [data-action="artillery"] span { bottom: 15px; }
   .special-actions [data-action="shield"] { width: 80px; min-height: 56px; }
   .special-actions [data-action="shield"] span {
     top: auto;
     bottom: 59px;
-    transform: translate(-50%, 60px);
+    transform: translate(-50%, 10px);
   }
 
   .special-actions [data-action="clone"] { left: 4%; bottom: 22%; }
@@ -275,7 +278,11 @@ button:disabled { opacity: var(--disabled); cursor: not-allowed; }
   .special-actions [data-action="fan"] { right: 3%; bottom: 22%; }
   .special-actions [data-action="destroy"] { right: 13%; bottom: 22%; transform: translate(30px, 15px); }
   .special-actions [data-action="artillery"] { right: 14%; bottom: calc(3px + env(safe-area-inset-bottom)); transform: translateX(30px); }
-  .special-actions [data-action="shield"] { right: 2%; bottom: calc(3px + env(safe-area-inset-bottom)); }
+  .special-actions [data-action="shield"] {
+    right: 2%;
+    bottom: calc(3px + env(safe-area-inset-bottom));
+    transform: translateY(60px);
+  }
 }
 
 @media (orientation: portrait) and (max-width: 900px) {

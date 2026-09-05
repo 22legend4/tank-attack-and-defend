@@ -12,6 +12,7 @@ const BASE_SPEED = (CORE_X.enemy - HOME_X.player) / 8;
 
 const ITEM_DEFAULTS = Object.freeze({ laser: 2, magic: 2, destroy: 1, clone: 10, fan: 4, shield: 5, artillery: 3 });
 const AI_LEVEL_MAX = 10;
+const AI_PROGRESS_STORAGE_KEY = "tankad.aiLevel";
 const AI_LEVEL_CONFIG = Object.freeze({
   1: { ammo: 400, beginnerWeapons: ["normal", "laser"] },
   2: { ammo: 400, beginnerWeapons: ["normal", "laser", "artillery", "magic"] },
@@ -76,9 +77,23 @@ let networkPolling = false;
 let networkStream = null;
 let lastStateSent = 0;
 let aiLevel = 1;
+let aiCampaignActive = false;
 let audioContext = null;
 let nextSoundEventId = 1;
 let lastRemoteSoundEventId = 0;
+
+function loadSavedAiLevel() {
+  try {
+    const savedLevel = Number.parseInt(localStorage.getItem(AI_PROGRESS_STORAGE_KEY), 10);
+    if (Number.isInteger(savedLevel)) return Math.min(AI_LEVEL_MAX, Math.max(1, savedLevel));
+  } catch (_) {}
+  return 1;
+}
+
+function saveAiLevel(level) {
+  const safeLevel = Math.min(AI_LEVEL_MAX, Math.max(1, Number.parseInt(level, 10) || 1));
+  try { localStorage.setItem(AI_PROGRESS_STORAGE_KEY, String(safeLevel)); } catch (_) {}
+}
 
 function unlockAudio() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -646,6 +661,7 @@ function checkEnd() {
       game.nextAiLevel = aiLevel;
       result = `DRAW — RETRY AI LEVEL ${aiLevel}`;
     }
+    if (aiCampaignActive) saveAiLevel(game.nextAiLevel);
   }
   game.result = result;
   setMessage(result);
@@ -1068,6 +1084,7 @@ async function requestRematch() {
   if (!game.over) return;
   if (playMode === "ai") {
     aiLevel = game.nextAiLevel || 1;
+    if (aiCampaignActive) saveAiLevel(aiLevel);
     resetGame({ preserveBackground: true });
     return;
   }
@@ -1092,6 +1109,7 @@ function backToHome() {
     return;
   }
   playMode = "menu";
+  aiCampaignActive = false;
   refreshMatchControls();
   document.getElementById("lobby").classList.remove("hidden");
   showLobbyView("lobbyHome");
@@ -1155,6 +1173,7 @@ async function tryPublicAiFallback(roomId, clientId) {
     stopNetworkSync();
     network = null;
     playMode = "ai";
+    aiCampaignActive = false;
     aiLevel = 1;
     resetGame();
     document.getElementById("lobby").classList.add("hidden");
@@ -1301,7 +1320,9 @@ async function leaveRoom() {
 
 document.getElementById("playAiButton").addEventListener("click", () => {
   playMode = "ai";
-  aiLevel = 1;
+  aiCampaignActive = true;
+  aiLevel = loadSavedAiLevel();
+  saveAiLevel(aiLevel);
   localSide = Math.random() < 0.5 ? "player" : "enemy";
   resetGame();
   document.getElementById("lobby").classList.add("hidden");
